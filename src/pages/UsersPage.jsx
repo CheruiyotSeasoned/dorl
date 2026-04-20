@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../lib/api'
 import toast from 'react-hot-toast'
 import { useAuthStore } from '../store/authStore'
-import { Search, UserPlus, CheckCircle, XCircle, Trash2, UserCheck, ShieldCheck, ShieldOff, X, Star } from 'lucide-react'
+import { Search, UserPlus, CheckCircle, XCircle, Trash2, UserCheck, ShieldCheck, ShieldOff, X, Star, Pencil, Eye, EyeOff } from 'lucide-react'
 import Select from '../components/Select'
 
 const ROLE_BADGE = { admin: 'badge-primary', vendor: 'badge-neutral', rider: 'badge-warning' }
@@ -178,6 +178,87 @@ function RoleChangeModal({ user, onClose, onSuccess, currentUserIsSuperAdmin }) 
   )
 }
 
+function EditUserModal({ user, onClose, onSuccess }) {
+  const [form, setForm] = useState({ name: user.name, email: user.email, phone: user.phone ?? '', password: '' })
+  const [showPw, setShowPw] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    setLoading(true)
+    try {
+      const payload = { name: form.name, email: form.email, phone: form.phone }
+      if (form.password) payload.password = form.password
+      await api.patch(`/admin/users/${user.id}`, payload)
+      toast.success('User updated')
+      onSuccess()
+    } catch (err) {
+      const errors = err.response?.data?.errors
+      toast.error(errors ? Object.values(errors).flat()[0] : err.response?.data?.error ?? 'Update failed')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 16 }}>
+      <div className="card" style={{ width: '100%', maxWidth: 460, margin: 0 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+          <div>
+            <h3 style={{ margin: 0 }}>Edit User</h3>
+            <p className="text-sm text-muted" style={{ marginTop: 2 }}>{user.email}</p>
+          </div>
+          <button className="btn btn-ghost btn-sm" onClick={onClose}><X size={16} /></button>
+        </div>
+
+        <form onSubmit={handleSubmit}>
+          <div className="form-group">
+            <label className="form-label">Full Name</label>
+            <input className="form-control" required value={form.name} onChange={e => set('name', e.target.value)} />
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Email</label>
+            <input type="email" className="form-control" required value={form.email} onChange={e => set('email', e.target.value)} />
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Phone</label>
+            <input className="form-control" value={form.phone} onChange={e => set('phone', e.target.value)} placeholder="+254700000000" />
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">New Password <span style={{ fontWeight: 400, color: 'var(--text-secondary)', fontSize: 11 }}>(leave blank to keep current)</span></label>
+            <div style={{ position: 'relative' }}>
+              <input
+                type={showPw ? 'text' : 'password'}
+                className="form-control"
+                value={form.password}
+                onChange={e => set('password', e.target.value)}
+                placeholder="••••••••"
+                minLength={form.password ? 8 : undefined}
+                style={{ paddingRight: 40 }}
+              />
+              <button type="button" onClick={() => setShowPw(v => !v)}
+                style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)', display: 'flex' }}>
+                {showPw ? <EyeOff size={15} /> : <Eye size={15} />}
+              </button>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 8 }}>
+            <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
+            <button type="submit" className="btn btn-primary" disabled={loading}>
+              {loading ? <span className="spinner" /> : 'Save Changes'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
+
 export default function UsersPage() {
   const { user: me, isSuperAdmin } = useAuthStore()
   const qc = useQueryClient()
@@ -185,6 +266,7 @@ export default function UsersPage() {
   const [roleFilter, setRoleFilter] = useState('all')
   const [showCreate, setShowCreate] = useState(false)
   const [roleModal, setRoleModal] = useState(null)
+  const [editModal, setEditModal] = useState(null)
 
   const superAdmin = isSuperAdmin()
 
@@ -247,6 +329,13 @@ export default function UsersPage() {
           currentUserIsSuperAdmin={superAdmin}
           onClose={() => setRoleModal(null)}
           onSuccess={() => { setRoleModal(null); refetch() }}
+        />
+      )}
+      {editModal && (
+        <EditUserModal
+          user={editModal}
+          onClose={() => setEditModal(null)}
+          onSuccess={() => { setEditModal(null); refetch() }}
         />
       )}
 
@@ -347,6 +436,13 @@ export default function UsersPage() {
                     </td>
                     <td>
                       <div style={{ display: 'flex', gap: 4, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+                        {/* Edit user — super admin only */}
+                        {superAdmin && canActOn(u) && (
+                          <button className="btn btn-ghost btn-sm" title="Edit user" onClick={() => setEditModal(u)}>
+                            <Pencil size={14} color="var(--primary)" />
+                          </button>
+                        )}
+
                         {/* Approve pending rider */}
                         {u.role === 'rider' && !u.rider_profile?.admin_approved && canActOn(u) && (
                           <button className="btn btn-ghost btn-sm" title="Approve rider" onClick={() => approveRider.mutate(u.id)}>
