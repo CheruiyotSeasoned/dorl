@@ -7,6 +7,7 @@ import { useAuthStore } from '../store/authStore'
 import { Power, MapPin, Navigation, Package, Star, Clock, ChevronRight, Wifi, WifiOff, Bell, Sun, CheckCircle, AlertTriangle } from 'lucide-react'
 import HereMap from '../components/HereMap'
 import { useRiderPWA } from '../hooks/useRiderPWA'
+import AppDownloadBanner from '../components/AppDownloadBanner'
 
 const PKG_STATUS = {
   assigned_to_rider: { next: 'picked_up',              label: 'Confirm Pickup',   color: 'var(--warning)' },
@@ -155,6 +156,7 @@ export default function RiderDashboardPage() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      <AppDownloadBanner role="rider" />
       {/* Header with online toggle */}
       <div className="page-header">
         <div>

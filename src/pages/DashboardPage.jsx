@@ -7,6 +7,7 @@ import {
   Zap, Users, MapPin, DollarSign, ArrowUpRight, BarChart2,
   MessageSquare, AlertCircle,
 } from 'lucide-react'
+import AppDownloadBanner from '../components/AppDownloadBanner'
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 const fmt   = (n) => n != null ? Number(n).toLocaleString() : '—'
@@ -175,6 +176,7 @@ export default function DashboardPage() {
 
   return (
     <div>
+      {!admin && <AppDownloadBanner role="vendor" />}
       {/* ── Header ─────────────────────────────────────────────────────────── */}
       <div className="page-header" style={{ marginBottom: 28 }}>
         <div>
