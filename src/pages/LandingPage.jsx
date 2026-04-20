@@ -33,8 +33,8 @@ function Navbar() {
         </nav>
         <div style={{ marginLeft: 'auto', display: 'flex', gap: 10, alignItems: 'center' }}>
           <Link to="/login" style={{ fontSize: 14, fontWeight: 600, color: '#0D0D0D', textDecoration: 'none' }}>Sign in</Link>
-          <Link to="/register" style={{ background: '#FF5E14', color: '#fff', padding: '8px 20px', borderRadius: 8, fontSize: 14, fontWeight: 600, textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 6 }}>
-            <MapPin size={14} /> Find A Location
+          <Link to="/register" style={{ background: '#FF5E14', color: '#fff', padding: '8px 16px', borderRadius: 8, fontSize: 14, fontWeight: 600, textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 6 }}>
+            <MapPin size={14} /> <span className="lp-find-text">Find A Location</span>
           </Link>
           <button onClick={() => setOpen(!open)} style={{ display: 'none', background: 'none', border: 'none', cursor: 'pointer' }} className="mobile-menu-btn">
             {open ? <X size={22} /> : <Menu size={22} />}
@@ -210,33 +210,33 @@ function Hero({ c = {} }) {
       {/* Subtle orange accent glow */}
       <div style={{ position: 'absolute', inset: 0, backgroundImage: 'radial-gradient(circle at 20% 60%, rgba(255,94,20,0.18) 0%, transparent 50%)', pointerEvents: 'none' }} />
 
-      <div style={{ maxWidth: 1200, margin: '0 auto', padding: '80px 24px', position: 'relative', zIndex: 1, width: '100%' }}>
+      <div style={{ maxWidth: 1200, margin: '0 auto', padding: '72px 24px', position: 'relative', zIndex: 1, width: '100%' }}>
         <div style={{ maxWidth: 620 }}>
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(255,94,20,0.18)', border: '1px solid rgba(255,94,20,0.4)', borderRadius: 999, padding: '6px 14px', marginBottom: 24 }}>
             <Zap size={13} color="#FF5E14" />
             <span style={{ fontSize: 12, fontWeight: 600, color: '#FF5E14', letterSpacing: '0.5px', textTransform: 'uppercase' }}>{c.badge ?? 'Last-Mile Logistics'}</span>
           </div>
-          <h1 style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", fontWeight: 700, fontSize: 'clamp(2.6rem,5.5vw,4.2rem)', lineHeight: 1.06, color: '#fff', marginBottom: 8 }}>
+          <h1 style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", fontWeight: 700, fontSize: 'clamp(2rem,6vw,4.2rem)', lineHeight: 1.06, color: '#fff', marginBottom: 8 }}>
             {c.title1 ?? 'Transport anything'}
           </h1>
-          <h1 style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", fontWeight: 700, fontSize: 'clamp(2.6rem,5.5vw,4.2rem)', lineHeight: 1.06, color: '#FF5E14', marginBottom: 24 }}>
+          <h1 style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", fontWeight: 700, fontSize: 'clamp(2rem,6vw,4.2rem)', lineHeight: 1.06, color: '#FF5E14', marginBottom: 20 }}>
             {c.title2 ?? 'from anywhere.'}
           </h1>
-          <p style={{ fontSize: 17, color: 'rgba(255,255,255,0.72)', lineHeight: 1.75, maxWidth: 520, marginBottom: 36 }}>
+          <p style={{ fontSize: 'clamp(14px,2vw,17px)', color: 'rgba(255,255,255,0.72)', lineHeight: 1.75, maxWidth: 520, marginBottom: 32 }}>
             {c.subtitle ?? 'Transport Business is Movement. DORL connects vendors and riders in real-time — fast dispatch, live tracking, and proof of delivery you can trust.'}
           </p>
-          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-            <Link to="/register" style={{ background: '#FF5E14', color: '#fff', padding: '13px 28px', borderRadius: 10, fontWeight: 700, fontSize: 15, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+          <div className="lp-hero-btns" style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+            <Link to="/register" className="btn" style={{ background: '#FF5E14', color: '#fff', padding: '13px 28px', borderRadius: 10, fontWeight: 700, fontSize: 15 }}>
               {c.cta_primary ?? 'Get Started'} <ArrowRight size={16} />
             </Link>
-            <a href="#services" style={{ background: 'rgba(255,255,255,0.1)', color: '#fff', padding: '13px 28px', borderRadius: 10, fontWeight: 600, fontSize: 15, textDecoration: 'none', border: '1px solid rgba(255,255,255,0.2)', display: 'inline-flex', alignItems: 'center', gap: 8, backdropFilter: 'blur(4px)' }}>
+            <a href="#services" className="btn" style={{ background: 'rgba(255,255,255,0.1)', color: '#fff', padding: '13px 28px', borderRadius: 10, fontWeight: 600, fontSize: 15, border: '1px solid rgba(255,255,255,0.2)', backdropFilter: 'blur(4px)' }}>
               {c.cta_secondary ?? 'Our Solutions'}
             </a>
           </div>
-          <div style={{ display: 'flex', gap: 32, marginTop: 52, flexWrap: 'wrap' }}>
+          <div className="lp-stats-row" style={{ display: 'flex', gap: 32, marginTop: 48, flexWrap: 'wrap' }}>
             {stats.map(([v, l]) => (
               <div key={l} style={{ borderLeft: '2px solid rgba(255,94,20,0.5)', paddingLeft: 14 }}>
-                <div style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", fontWeight: 700, fontSize: 26, color: '#fff' }}>{v}</div>
+                <div style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", fontWeight: 700, fontSize: 'clamp(18px,3vw,26px)', color: '#fff' }}>{v}</div>
                 <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginTop: 2 }}>{l}</div>
               </div>
             ))}
@@ -256,8 +256,8 @@ function About({ c = {} }) {
     { value: 'KES 15M', label: 'Burglary coverage value' },
   ]
   return (
-    <section id="about" style={{ background: '#fff', padding: '96px 24px' }}>
-      <div style={{ maxWidth: 1200, margin: '0 auto', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 64, alignItems: 'center' }}>
+    <section id="about" className="lp-pad" style={{ background: '#fff' }}>
+      <div style={{ maxWidth: 1200, margin: '0 auto' }} className="lp-about-grid">
         <div style={{ position: 'relative' }}>
           <div style={{ background: '#F7F7F7', borderRadius: 20, height: 380, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <div style={{ textAlign: 'center' }}>
@@ -267,7 +267,7 @@ function About({ c = {} }) {
               <p style={{ color: '#6B6B6B', fontSize: 14 }}>DORL Delivery Fleet</p>
             </div>
           </div>
-          <div style={{ position: 'absolute', bottom: -20, right: -20, background: '#FF5E14', borderRadius: 16, padding: '16px 20px', textAlign: 'center' }}>
+          <div className="lp-about-badge">
             <div style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", fontWeight: 700, fontSize: 28, color: '#fff' }}>{c.years ?? '7+'}</div>
             <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.8)', marginTop: 2 }}>Years of Experience</div>
           </div>
@@ -308,14 +308,14 @@ function Services({ c = [] }) {
     { title: 'Staffing / HR Services',        desc: 'Experienced logistics workforce on demand.' },
   ]
   return (
-    <section id="services" style={{ background: '#F7F7F7', padding: '96px 24px' }}>
+    <section id="services" className="lp-pad" style={{ background: '#F7F7F7' }}>
       <div style={{ maxWidth: 1200, margin: '0 auto' }}>
         <div style={{ textAlign: 'center', marginBottom: 56 }}>
           <span style={{ fontSize: 12, fontWeight: 700, color: '#FF5E14', textTransform: 'uppercase', letterSpacing: '1px' }}>Our Solutions</span>
-          <h2 style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", fontWeight: 700, fontSize: 36, marginTop: 8, lineHeight: 1.2 }}>Everything your business needs to move</h2>
+          <h2 style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", fontWeight: 700, fontSize: 'clamp(24px,4vw,36px)', marginTop: 8, lineHeight: 1.2 }}>Everything your business needs to move</h2>
           <p style={{ color: '#6B6B6B', marginTop: 12, maxWidth: 520, margin: '12px auto 0', fontSize: 15, lineHeight: 1.7 }}>From single parcels to full logistics operations — DORL scales with you.</p>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 24 }}>
+        <div className="lp-services-grid">
           {items.map(({ title, desc }, idx) => {
             const Icon = SERVICE_ICONS[idx % SERVICE_ICONS.length]
             return (
@@ -347,14 +347,14 @@ function WhyUs({ c = {} }) {
     { title: 'Employer Liability', desc: 'WIBA up to KES 2M per person.' },
   ]
   return (
-    <section style={{ background: '#0D0D0D', padding: '96px 24px', position: 'relative', overflow: 'hidden' }}>
+    <section className="lp-pad" style={{ background: '#0D0D0D', position: 'relative', overflow: 'hidden' }}>
       <div style={{ position: 'absolute', inset: 0, backgroundImage: 'radial-gradient(circle at 30% 60%, rgba(255,94,20,0.08) 0%, transparent 55%)', pointerEvents: 'none' }} />
       <div style={{ maxWidth: 1200, margin: '0 auto', position: 'relative', zIndex: 1 }}>
         <div style={{ textAlign: 'center', marginBottom: 56 }}>
           <span style={{ fontSize: 12, fontWeight: 700, color: '#FF5E14', textTransform: 'uppercase', letterSpacing: '1px' }}>Why Choose Us</span>
-          <h2 style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", fontWeight: 700, fontSize: 36, color: '#fff', marginTop: 8, lineHeight: 1.2 }}>Moving with care and accountability</h2>
+          <h2 style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", fontWeight: 700, fontSize: 'clamp(24px,4vw,36px)', color: '#fff', marginTop: 8, lineHeight: 1.2 }}>Moving with care and accountability</h2>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20 }}>
+        <div className="lp-whyus-grid">
           {items.map(({ title, desc }, idx) => {
             const Icon = WHYUS_ICONS[idx % WHYUS_ICONS.length]
             return (
@@ -368,7 +368,7 @@ function WhyUs({ c = {} }) {
             )
           })}
         </div>
-        <div style={{ marginTop: 56, background: 'rgba(255,94,20,0.08)', border: '1px solid rgba(255,94,20,0.2)', borderRadius: 20, padding: '36px 40px', textAlign: 'center' }}>
+        <div className="lp-whyus-quote" style={{ marginTop: 56, background: 'rgba(255,94,20,0.08)', border: '1px solid rgba(255,94,20,0.2)', borderRadius: 20, padding: '36px 40px', textAlign: 'center' }}>
           <div style={{ fontSize: 40, color: '#FF5E14', fontFamily: 'Georgia, serif', lineHeight: 1, marginBottom: 16 }}>"</div>
           <p style={{ color: 'rgba(255,255,255,0.75)', fontSize: 17, lineHeight: 1.8, maxWidth: 720, margin: '0 auto', fontStyle: 'italic' }}>
             {c.quote ?? 'At DORL, we prioritize treating our clients with care and respect.'}
@@ -388,16 +388,16 @@ function HowItWorks({ c = [] }) {
     { n: '04', title: 'Track Live',     desc: 'Follow your delivery in real-time with GPS updates every 5 seconds.' },
   ]
   return (
-    <section style={{ background: '#fff', padding: '96px 24px' }}>
+    <section className="lp-pad" style={{ background: '#fff' }}>
       <div style={{ maxWidth: 1200, margin: '0 auto' }}>
         <div style={{ textAlign: 'center', marginBottom: 56 }}>
           <span style={{ fontSize: 12, fontWeight: 700, color: '#FF5E14', textTransform: 'uppercase', letterSpacing: '1px' }}>How It Works</span>
           <h2 style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", fontWeight: 700, fontSize: 36, marginTop: 8 }}>Four steps to delivered</h2>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: `repeat(${steps.length}, 1fr)`, gap: 24 }}>
+        <div className="lp-steps-grid" style={{ gridTemplateColumns: `repeat(${steps.length}, 1fr)` }}>
           {steps.map(({ n, title, desc }, i) => (
             <div key={n} style={{ position: 'relative', textAlign: 'center' }}>
-              {i < steps.length - 1 && <div style={{ position: 'absolute', top: 28, left: '60%', width: '80%', height: 1, background: '#E5E5E5', zIndex: 0 }} />}
+              {i < steps.length - 1 && <div className="lp-step-line" style={{ position: 'absolute', top: 28, left: '60%', width: '80%', height: 1, background: '#E5E5E5', zIndex: 0 }} />}
               <div style={{ position: 'relative', zIndex: 1 }}>
                 <div style={{ width: 56, height: 56, background: '#FF5E14', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', color: '#fff', fontFamily: "'Plus Jakarta Sans',sans-serif", fontWeight: 700, fontSize: 16 }}>{n}</div>
                 <h4 style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", fontWeight: 600, fontSize: 16, marginBottom: 8 }}>{title}</h4>
@@ -419,9 +419,9 @@ function News({ c = [] }) {
     { cat: 'Partnership', title: 'DORL partners with 28 logistics operators',       date: 'Feb 2025', excerpt: 'A growing network of partners ensures we cover more ground and deliver faster.' },
   ]
   return (
-    <section id="news" style={{ background: '#F7F7F7', padding: '96px 24px' }}>
+    <section id="news" className="lp-pad" style={{ background: '#F7F7F7' }}>
       <div style={{ maxWidth: 1200, margin: '0 auto' }}>
-        <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 40 }}>
+        <div className="lp-news-header" style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 40 }}>
           <div>
             <span style={{ fontSize: 12, fontWeight: 700, color: '#FF5E14', textTransform: 'uppercase', letterSpacing: '1px' }}>News Feeds</span>
             <h2 style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", fontWeight: 700, fontSize: 32, marginTop: 6 }}>Latest Updates</h2>
@@ -430,7 +430,7 @@ function News({ c = [] }) {
             All posts <ChevronRight size={16} />
           </a>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 24 }}>
+        <div className="lp-news-grid">
           {posts.map(({ cat, title, date, excerpt }) => (
             <div key={title} style={{ background: '#fff', borderRadius: 16, overflow: 'hidden', border: '1px solid #E5E5E5' }}>
               <div style={{ height: 160, background: 'linear-gradient(135deg, #0D0D0D 0%, #2a2a2a 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -526,13 +526,13 @@ function Contact({ c = {} }) {
   }
 
   return (
-    <section id="contact" style={{ background: '#fff', padding: '96px 24px' }}>
+    <section id="contact" className="lp-pad" style={{ background: '#fff' }}>
       <div style={{ maxWidth: 1200, margin: '0 auto' }}>
         <div style={{ textAlign: 'center', marginBottom: 56 }}>
           <span style={{ fontSize: 12, fontWeight: 700, color: '#FF5E14', textTransform: 'uppercase', letterSpacing: '1px' }}>Get In Touch</span>
-          <h2 style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", fontWeight: 700, fontSize: 36, marginTop: 8 }}>We're here to help</h2>
+          <h2 style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", fontWeight: 700, fontSize: 'clamp(24px,4vw,36px)', marginTop: 8 }}>We're here to help</h2>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.4fr', gap: 48 }}>
+        <div className="lp-contact-grid">
           <div>
             {info.map(({ icon: Icon, label, value }) => (
               <div key={label} style={{ display: 'flex', gap: 16, marginBottom: 24 }}>
@@ -566,7 +566,7 @@ function Contact({ c = {} }) {
                     {errors._form}
                   </div>
                 )}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
+                <div className="lp-form-row">
                   <div>
                     <label style={{ fontSize: 13, fontWeight: 500, color: '#6B6B6B', display: 'block', marginBottom: 6 }}>Name <span style={{ color: '#EF4444' }}>*</span></label>
                     <input
@@ -595,7 +595,7 @@ function Contact({ c = {} }) {
                     {errors.email && <span style={{ fontSize: 11, color: '#EF4444', marginTop: 3, display: 'block' }}>{errors.email}</span>}
                   </div>
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
+                <div className="lp-form-row">
                   <div>
                     <label style={{ fontSize: 13, fontWeight: 500, color: '#6B6B6B', display: 'block', marginBottom: 6 }}>Phone</label>
                     <input
@@ -661,7 +661,7 @@ function Footer({ contact = {} }) {
   return (
     <footer style={{ background: '#0D0D0D', color: 'rgba(255,255,255,0.6)', padding: '64px 24px 0' }}>
       <div style={{ maxWidth: 1200, margin: '0 auto' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr', gap: 48, paddingBottom: 48, borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+        <div className="lp-footer-grid">
           <div>
             <div style={{ marginBottom: 16 }}>
               <div style={{ background: '#fff', borderRadius: 6, padding: '4px 10px', display: 'inline-block' }}>
@@ -698,9 +698,9 @@ function Footer({ contact = {} }) {
             </div>
           ))}
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 0', fontSize: 13 }}>
+        <div className="lp-footer-bottom" style={{ color: 'rgba(255,255,255,0.4)', fontSize: 13 }}>
           <span>Copyright © {new Date().getFullYear()} DORL Delivery. All Rights Reserved.</span>
-          <div style={{ display: 'flex', gap: 24 }}>
+          <div className="lp-footer-links">
             {['Terms & Conditions','Careers','Get A Quote'].map(l => (
               <a key={l} href="#" style={{ color: 'rgba(255,255,255,0.4)', textDecoration: 'none', fontSize: 12 }}>{l}</a>
             ))}
@@ -722,17 +722,79 @@ export default function LandingPage() {
   const d = data ?? {}
 
   return (
-    <div style={{ fontFamily: "'DM Sans',sans-serif" }}>
+    <div className="lp">
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Plus+Jakarta+Sans:wght@600;700&display=swap');
+        *,*::before,*::after{box-sizing:border-box}
+        .lp { font-family:'DM Sans',sans-serif; }
         .form-control { border:1px solid #E5E5E5; border-radius:6px; padding:9px 12px; font-size:15px; color:#0D0D0D; background:#fff; outline:none; width:100%; font-family:'DM Sans',sans-serif; }
         .form-control:focus { border-color:#FF5E14; }
-        .btn { display:inline-flex; align-items:center; gap:6px; padding:9px 18px; border-radius:8px; font-size:14px; font-weight:600; border:none; cursor:pointer; }
+        .btn { display:inline-flex; align-items:center; gap:6px; padding:9px 18px; border-radius:8px; font-size:14px; font-weight:600; border:none; cursor:pointer; text-decoration:none; }
         .btn-primary { background:#FF5E14; color:#fff; }
         @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ── section padding ── */
+        .lp-pad { padding: 96px 24px; }
+
+        /* ── grids ── */
+        .lp-about-grid    { display:grid; grid-template-columns:1fr 1fr; gap:64px; align-items:center; }
+        .lp-services-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:24px; }
+        .lp-whyus-grid    { display:grid; grid-template-columns:repeat(3,1fr); gap:20px; }
+        .lp-steps-grid    { display:grid; gap:24px; }
+        .lp-news-grid     { display:grid; grid-template-columns:repeat(3,1fr); gap:24px; }
+        .lp-contact-grid  { display:grid; grid-template-columns:1fr 1.4fr; gap:48px; }
+        .lp-footer-grid   { display:grid; grid-template-columns:2fr 1fr 1fr 1fr; gap:48px; padding-bottom:48px; border-bottom:1px solid rgba(255,255,255,0.08); }
+        .lp-form-row      { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px; }
+
+        /* ── nav ── */
+        .desktop-nav { display:flex; }
+        .mobile-menu-btn { display:none; background:none; border:none; cursor:pointer; padding:4px; }
+        .lp-find-text { display:inline; }
+
+        /* ── footer bottom ── */
+        .lp-footer-bottom { display:flex; align-items:center; justify-content:space-between; padding:20px 0; font-size:13px; }
+        .lp-footer-links  { display:flex; gap:24px; }
+
+        /* ── about image badge ── */
+        .lp-about-badge { position:absolute; bottom:-20px; right:-20px; background:#FF5E14; border-radius:16px; padding:16px 20px; text-align:center; }
+
+        /* ── 1024px tablet ── */
+        @media(max-width:1024px){
+          .lp-services-grid { grid-template-columns:repeat(2,1fr); }
+          .lp-whyus-grid    { grid-template-columns:repeat(2,1fr); }
+          .lp-news-grid     { grid-template-columns:repeat(2,1fr); }
+          .lp-footer-grid   { grid-template-columns:1fr 1fr; gap:32px; }
+          .lp-about-grid    { gap:40px; }
+        }
+
+        /* ── 768px mobile ── */
         @media(max-width:768px){
-          .desktop-nav { display:none !important; }
-          .mobile-menu-btn { display:block !important; }
+          .lp-pad           { padding:56px 20px; }
+          .desktop-nav      { display:none !important; }
+          .mobile-menu-btn  { display:block !important; }
+          .lp-find-text     { display:none; }
+          .lp-about-grid    { grid-template-columns:1fr; gap:32px; }
+          .lp-services-grid { grid-template-columns:1fr; }
+          .lp-whyus-grid    { grid-template-columns:1fr; }
+          .lp-steps-grid    { grid-template-columns:repeat(2,1fr) !important; }
+          .lp-news-grid     { grid-template-columns:1fr; }
+          .lp-contact-grid  { grid-template-columns:1fr; gap:32px; }
+          .lp-footer-grid   { grid-template-columns:1fr; gap:28px; }
+          .lp-form-row      { grid-template-columns:1fr; }
+          .lp-footer-bottom { flex-direction:column; gap:12px; text-align:center; }
+          .lp-footer-links  { flex-wrap:wrap; justify-content:center; gap:16px; }
+          .lp-about-badge   { bottom:-12px; right:12px; padding:10px 14px; }
+          .lp-hero-btns     { flex-direction:column; align-items:flex-start; }
+          .lp-stats-row     { gap:20px; }
+          .lp-step-line     { display:none !important; }
+          .lp-whyus-quote   { padding:24px 20px !important; }
+          .lp-news-header   { flex-direction:column; align-items:flex-start; gap:8px; }
+        }
+
+        /* ── 480px small phones ── */
+        @media(max-width:480px){
+          .lp-steps-grid  { grid-template-columns:1fr !important; }
+          .lp-footer-grid { grid-template-columns:1fr; }
         }
       `}</style>
       <Navbar />

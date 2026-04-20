@@ -10,10 +10,6 @@ export default defineConfig({
       strategies: 'injectManifest',
       srcDir: 'src',
       filename: 'sw.js',
-      injectManifest: {
-        swSrc: 'src/sw.js',
-        swDest: 'sw.js',
-      },
       manifest: {
         name: 'DORL Rider',
         short_name: 'DORL Rider',
