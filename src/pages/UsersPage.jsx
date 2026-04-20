@@ -72,18 +72,31 @@ function CreateUserModal({ onClose, onSuccess, currentUserIsSuperAdmin }) {
 
           <div className="form-group">
             <label className="form-label">Role</label>
-            <Select value={form.role} onChange={e => set('role', e.target.value)} options={availableRoles} />
+            <Select
+              value={form.role}
+              onChange={e => {
+                const newRole = e.target.value
+                setForm(f => ({ ...f, role: newRole, vendor_id: newRole === 'vendor' ? f.vendor_id : '' }))
+              }}
+              options={availableRoles}
+            />
           </div>
 
           {form.role === 'vendor' && (
             <div className="form-group">
               <label className="form-label">Vendor Shop <span style={{ color: 'var(--danger)' }}>*</span></label>
-              <Select
-                value={form.vendor_id}
-                onChange={e => set('vendor_id', e.target.value)}
-                placeholder="— Select vendor —"
-                options={(vendorsList ?? []).map(v => ({ value: v.id, label: v.name }))}
-              />
+              {vendorsList?.length === 0 ? (
+                <p style={{ fontSize: 13, color: 'var(--danger)', margin: '4px 0 0' }}>
+                  No vendors exist yet. <strong>Create a vendor first</strong> in the Vendors page before adding vendor users.
+                </p>
+              ) : (
+                <Select
+                  value={form.vendor_id}
+                  onChange={e => set('vendor_id', e.target.value)}
+                  placeholder="— Select vendor —"
+                  options={(vendorsList ?? []).map(v => ({ value: v.id, label: v.name }))}
+                />
+              )}
             </div>
           )}
 
