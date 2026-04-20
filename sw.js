@@ -1,4 +1,10 @@
-// Service Worker for DORL Rider PWA
+import { precacheAndRoute } from 'workbox-precaching';
+
+// 🔴 REQUIRED for injectManifest
+precacheAndRoute(self.__WB_MANIFEST);
+
+
+// --- your existing code below ---
 
 self.addEventListener('push', (event) => {
   if (!event.data) return
@@ -39,11 +45,5 @@ self.addEventListener('notificationclick', (event) => {
   )
 })
 
-// Cache app shell on install
-self.addEventListener('install', (event) => {
-  self.skipWaiting()
-})
-
-self.addEventListener('activate', (event) => {
-  event.waitUntil(clients.claim())
-})
+self.addEventListener('install', () => self.skipWaiting())
+self.addEventListener('activate', (event) => event.waitUntil(clients.claim()))
