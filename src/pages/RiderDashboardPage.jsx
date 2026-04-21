@@ -1,10 +1,10 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import api from '../lib/api'
 import toast from 'react-hot-toast'
 import { useAuthStore } from '../store/authStore'
-import { Power, MapPin, Navigation, Package, Star, Clock, ChevronRight, Wifi, WifiOff, Bell, Sun, CheckCircle, AlertTriangle, Maximize2, X } from 'lucide-react'
+import { Power, MapPin, Navigation, Package, Star, Clock, ChevronRight, Wifi, WifiOff, Bell, Sun, CheckCircle, AlertTriangle, Maximize2, X, Phone, User } from 'lucide-react'
 import HereMap from '../components/HereMap'
 import { useRiderPWA } from '../hooks/useRiderPWA'
 import AppDownloadBanner from '../components/AppDownloadBanner'
@@ -150,15 +150,18 @@ export default function RiderDashboardPage() {
       color: rp?.admin_approved ? 'var(--success)' : 'var(--warning)' },
   ]
 
-  const markers = []
-  if (active?.pickup_lat)  markers.push({ lat: Number(active.pickup_lat),  lng: Number(active.pickup_lng),  color: '#FF5E14', label: 'P' })
-  if (active?.dropoff_lat) markers.push({ lat: Number(active.dropoff_lat), lng: Number(active.dropoff_lng), color: '#16A34A', label: 'D' })
-  if (myPos) markers.push({ lat: myPos.lat, lng: myPos.lng, color: '#2563EB', label: 'Me' })
+  const markers = useMemo(() => {
+    const m = []
+    if (active?.pickup_lat)  m.push({ lat: Number(active.pickup_lat),  lng: Number(active.pickup_lng),  color: '#FF5E14', label: 'P' })
+    if (active?.dropoff_lat) m.push({ lat: Number(active.dropoff_lat), lng: Number(active.dropoff_lng), color: '#16A34A', label: 'D' })
+    if (myPos) m.push({ lat: myPos.lat, lng: myPos.lng, color: '#2563EB', label: 'Me', live: true })
+    return m
+  }, [active?.pickup_lat, active?.pickup_lng, active?.dropoff_lat, active?.dropoff_lng, myPos?.lat, myPos?.lng])
 
-  const route = (active?.pickup_lat && active?.dropoff_lat) ? {
+  const route = useMemo(() => (active?.pickup_lat && active?.dropoff_lat) ? {
     pickup:  { lat: Number(active.pickup_lat),  lng: Number(active.pickup_lng) },
     dropoff: { lat: Number(active.dropoff_lat), lng: Number(active.dropoff_lng) },
-  } : undefined
+  } : undefined, [active?.pickup_lat, active?.pickup_lng, active?.dropoff_lat, active?.dropoff_lng])
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
@@ -301,6 +304,48 @@ export default function RiderDashboardPage() {
               )}
             </div>
           ))}
+
+          {/* Recipient info */}
+          {(active.recipient_name || active.recipient_phone) && (
+            <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Recipient</div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  {active.recipient_name && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                      <User size={14} color="var(--text-secondary)" style={{ flexShrink: 0 }} />
+                      <span style={{ fontSize: 14, fontWeight: 600 }}>{active.recipient_name}</span>
+                    </div>
+                  )}
+                  {active.recipient_phone && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                      <Phone size={14} color="var(--text-secondary)" style={{ flexShrink: 0 }} />
+                      <span style={{ fontSize: 13 }}>{active.recipient_phone}</span>
+                    </div>
+                  )}
+                </div>
+                {active.recipient_phone && (
+                  <a
+                    href={`tel:${active.recipient_phone}`}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 6,
+                      background: 'var(--success)', color: '#fff',
+                      padding: '9px 16px', borderRadius: 10,
+                      fontSize: 13, fontWeight: 700, textDecoration: 'none',
+                      flexShrink: 0,
+                    }}
+                  >
+                    <Phone size={14} /> Call
+                  </a>
+                )}
+              </div>
+              {active.recipient_notes && (
+                <div style={{ fontSize: 12, color: 'var(--text-secondary)', background: 'var(--surface-muted)', borderRadius: 8, padding: '8px 10px', lineHeight: 1.5 }}>
+                  {active.recipient_notes}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Route addresses */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--border)' }}>
