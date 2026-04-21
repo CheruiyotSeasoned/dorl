@@ -2,10 +2,12 @@ import { Bell } from 'lucide-react'
 import { useVendorPWA } from '../hooks/useVendorPWA'
 import toast from 'react-hot-toast'
 
+const pushSupported = () => 'Notification' in window && 'PushManager' in window
+
 export default function VendorPushBanner() {
   const { pushGranted, requestPushPermission } = useVendorPWA()
 
-  if (pushGranted) return null
+  if (!pushSupported() || pushGranted) return null
 
   return (
     <div style={{

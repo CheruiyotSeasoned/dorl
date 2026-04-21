@@ -10,15 +10,18 @@ function urlBase64ToUint8Array(base64String) {
   return Uint8Array.from([...raw].map(c => c.charCodeAt(0)))
 }
 
+const hasNotification = () => 'Notification' in window
+const hasPush = () => 'serviceWorker' in navigator && 'PushManager' in window
+
 export function useVendorPWA() {
   const [pushGranted, setPushGranted] = useState(
-    typeof Notification !== 'undefined' && Notification.permission === 'granted'
+    () => hasNotification() && window.Notification.permission === 'granted'
   )
 
   const subscribe = async () => {
-    if (!('serviceWorker' in navigator) || !('PushManager' in window) || !VAPID_PUBLIC_KEY) return false
+    if (!hasPush() || !hasNotification() || !VAPID_PUBLIC_KEY) return false
     try {
-      const permission = await Notification.requestPermission()
+      const permission = await window.Notification.requestPermission()
       if (permission !== 'granted') return false
       setPushGranted(true)
 
@@ -44,9 +47,8 @@ export function useVendorPWA() {
     }
   }
 
-  // Auto-subscribe if already granted
   useEffect(() => {
-    if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+    if (hasNotification() && window.Notification.permission === 'granted') {
       subscribe()
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
