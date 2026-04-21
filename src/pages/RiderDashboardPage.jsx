@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom'
 import api from '../lib/api'
 import toast from 'react-hot-toast'
 import { useAuthStore } from '../store/authStore'
-import { Power, MapPin, Navigation, Package, Star, Clock, ChevronRight, Wifi, WifiOff, Bell, Sun, CheckCircle, AlertTriangle } from 'lucide-react'
+import { Power, MapPin, Navigation, Package, Star, Clock, ChevronRight, Wifi, WifiOff, Bell, Sun, CheckCircle, AlertTriangle, Maximize2, X } from 'lucide-react'
 import HereMap from '../components/HereMap'
 import { useRiderPWA } from '../hooks/useRiderPWA'
 import AppDownloadBanner from '../components/AppDownloadBanner'
@@ -44,6 +44,7 @@ export default function RiderDashboardPage() {
   const [isOnline, setIsOnline] = useState(false)
   const [myPos, setMyPos] = useState(null)
   const [locationError, setLocationError] = useState(null)
+  const [mapExpanded, setMapExpanded] = useState(false)
   const watchRef = useRef(null)
   const sendIntervalRef = useRef(null)
 
@@ -153,6 +154,11 @@ export default function RiderDashboardPage() {
   if (active?.pickup_lat)  markers.push({ lat: Number(active.pickup_lat),  lng: Number(active.pickup_lng),  color: '#FF5E14', label: 'P' })
   if (active?.dropoff_lat) markers.push({ lat: Number(active.dropoff_lat), lng: Number(active.dropoff_lng), color: '#16A34A', label: 'D' })
   if (myPos) markers.push({ lat: myPos.lat, lng: myPos.lng, color: '#2563EB', label: 'Me' })
+
+  const route = (active?.pickup_lat && active?.dropoff_lat) ? {
+    pickup:  { lat: Number(active.pickup_lat),  lng: Number(active.pickup_lng) },
+    dropoff: { lat: Number(active.dropoff_lat), lng: Number(active.dropoff_lng) },
+  } : undefined
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
@@ -312,10 +318,65 @@ export default function RiderDashboardPage() {
             ))}
           </div>
 
-          {/* Map */}
+          {/* Map preview + expand */}
           {markers.length > 0 && (
-            <div style={{ marginTop: 16, borderRadius: 10, overflow: 'hidden' }}>
-              <HereMap markers={markers} height="220px" zoom={13} />
+            <div style={{ marginTop: 16 }}>
+              <div style={{ borderRadius: 10, overflow: 'hidden', position: 'relative' }}>
+                <HereMap markers={markers} route={route} height="220px" zoom={13} />
+                <button
+                  onClick={() => setMapExpanded(true)}
+                  style={{
+                    position: 'absolute', top: 10, right: 10, zIndex: 10,
+                    background: 'rgba(255,255,255,0.95)', border: 'none', borderRadius: 8,
+                    padding: '7px 10px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5,
+                    fontSize: 12, fontWeight: 600, color: '#0D0D0D',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.18)',
+                  }}
+                >
+                  <Maximize2 size={14} /> Full Map
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Fullscreen map dialog */}
+          {mapExpanded && (
+            <div style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', flexDirection: 'column', background: '#000' }}>
+              {/* Header bar */}
+              <div style={{ flexShrink: 0, background: '#0D0D0D', padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 700, fontSize: 14, color: '#fff', marginBottom: 4 }}>Route Map</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                    {active.pickup_address && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
+                        <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#FF5E14', flexShrink: 0 }} />
+                        <span style={{ color: 'rgba(255,255,255,0.7)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {active.pickup_address}
+                        </span>
+                      </div>
+                    )}
+                    {active.dropoff_address && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
+                        <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#16A34A', flexShrink: 0 }} />
+                        <span style={{ color: 'rgba(255,255,255,0.7)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {active.dropoff_address}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <button
+                  onClick={() => setMapExpanded(false)}
+                  style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: 8, padding: 10, cursor: 'pointer', color: '#fff', display: 'flex', flexShrink: 0 }}
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              {/* Full map */}
+              <div style={{ flex: 1, minHeight: 0 }}>
+                <HereMap markers={markers} route={route} height="100%" zoom={14} />
+              </div>
             </div>
           )}
         </div>
