@@ -2,12 +2,13 @@ import { Outlet, NavLink, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../store/authStore'
 import {
   LayoutDashboard, Package, Users, Truck, FileText,
-  BarChart3, Settings, Shield, Mail, MessageSquare, LogOut, Menu, X, ClipboardList, Globe, Building2,
+  BarChart3, Settings, Shield, Mail, MessageSquare, LogOut, Menu, X, ClipboardList, Globe, Building2, MonitorSmartphone,
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import DispatchOfferModal from '../components/DispatchOfferModal'
 import PWAInstallBanner from '../components/PWAInstallBanner'
 import VendorPushBanner from '../components/VendorPushBanner'
+import SessionsModal from '../components/SessionsModal'
 
 const NAV = [
   // Admin + vendor + rider
@@ -46,6 +47,7 @@ export default function DashboardLayout() {
   const isMobile = useIsMobile()
   const [sidebarOpen, setSidebarOpen] = useState(!isMobile)
   const [collapsed, setCollapsed] = useState(false)
+  const [showSessions, setShowSessions] = useState(false)
 
   const closeMobile = () => { if (isMobile) setSidebarOpen(false) }
 
@@ -66,6 +68,7 @@ export default function DashboardLayout() {
 
   return (
     <div style={{ display: 'flex', minHeight: '100dvh' }}>
+      {showSessions && <SessionsModal onClose={() => setShowSessions(false)} />}
       {/* Dispatch offer modal — only active for riders */}
       <DispatchOfferModal />
       {/* PWA install banner */}
@@ -151,10 +154,26 @@ export default function DashboardLayout() {
               </div>
             )}
           </div>
-          <button onClick={handleLogout} className="btn btn-ghost btn-sm" style={{ width: '100%', justifyContent: (!collapsed || isMobile) ? 'flex-start' : 'center', color: 'rgba(255,255,255,0.5)', marginTop: 4 }}>
-            <LogOut size={16} />
-            {(!collapsed || isMobile) && 'Log out'}
-          </button>
+          <div style={{ display: 'flex', gap: 4, marginTop: 4 }}>
+            <button
+              onClick={() => setShowSessions(true)}
+              className="btn btn-ghost btn-sm"
+              title="Active sessions"
+              style={{ flex: collapsed && !isMobile ? 'none' : 1, justifyContent: (!collapsed || isMobile) ? 'flex-start' : 'center', color: 'rgba(255,255,255,0.5)' }}
+            >
+              <MonitorSmartphone size={16} />
+              {(!collapsed || isMobile) && 'Sessions'}
+            </button>
+            <button
+              onClick={handleLogout}
+              className="btn btn-ghost btn-sm"
+              title="Log out"
+              style={{ flex: collapsed && !isMobile ? 'none' : 1, justifyContent: (!collapsed || isMobile) ? 'flex-start' : 'center', color: 'rgba(255,255,255,0.5)' }}
+            >
+              <LogOut size={16} />
+              {(!collapsed || isMobile) && 'Log out'}
+            </button>
+          </div>
         </div>
       </aside>
 
@@ -170,6 +189,13 @@ export default function DashboardLayout() {
               <div style={{ fontSize: 13, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user?.name}</div>
               <div style={{ fontSize: 11, color: 'var(--text-secondary)', textTransform: 'capitalize' }}>{user?.role}</div>
             </div>
+            <button
+              onClick={() => setShowSessions(true)}
+              style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 8, padding: '6px 10px', cursor: 'pointer', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', flexShrink: 0 }}
+              title="Active sessions"
+            >
+              <MonitorSmartphone size={16} />
+            </button>
             <button
               onClick={handleLogout}
               style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 8, padding: '6px 12px', fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}
