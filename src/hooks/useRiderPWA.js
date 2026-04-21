@@ -10,9 +10,12 @@ function urlBase64ToUint8Array(base64String) {
   return Uint8Array.from([...raw].map(c => c.charCodeAt(0)))
 }
 
+const hasNotification = () => 'Notification' in window
+const notifPermission = () => hasNotification() ? window.Notification.permission : 'denied'
+
 export function useRiderPWA(isOnline) {
-  const wakeLockRef      = useRef(null)
-  const [pushGranted, setPushGranted] = useState(Notification.permission === 'granted')
+  const wakeLockRef = useRef(null)
+  const [pushGranted, setPushGranted]     = useState(() => notifPermission() === 'granted')
   const [wakeLockActive, setWakeLockActive] = useState(false)
 
   // ── Wake Lock: keep screen on while online ──────────────────────────────────
@@ -33,13 +36,9 @@ export function useRiderPWA(isOnline) {
       setWakeLockActive(false)
     }
 
-    if (isOnline) {
-      acquire()
-    } else {
-      release()
-    }
+    if (isOnline) acquire()
+    else release()
 
-    // Re-acquire after visibility change (Android/iOS releases lock on hide)
     const onVisible = () => { if (isOnline && document.visibilityState === 'visible') acquire() }
     document.addEventListener('visibilitychange', onVisible)
 
@@ -51,11 +50,10 @@ export function useRiderPWA(isOnline) {
 
   // ── Push Notifications: request + subscribe ─────────────────────────────────
   const requestPushPermission = async () => {
-    if (!('serviceWorker' in navigator) || !('PushManager' in window)) return false
-    if (!VAPID_PUBLIC_KEY) return false
+    if (!hasNotification() || !('serviceWorker' in navigator) || !('PushManager' in window) || !VAPID_PUBLIC_KEY) return false
 
     try {
-      const permission = await Notification.requestPermission()
+      const permission = await window.Notification.requestPermission()
       if (permission !== 'granted') return false
 
       setPushGranted(true)
@@ -86,12 +84,12 @@ export function useRiderPWA(isOnline) {
     }
   }
 
-  // Auto-subscribe when going online (if already granted)
+  // Auto-subscribe when going online if already granted
   useEffect(() => {
-    if (isOnline && Notification.permission === 'granted') {
+    if (isOnline && notifPermission() === 'granted') {
       requestPushPermission()
     }
-  }, [isOnline])
+  }, [isOnline]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return { pushGranted, wakeLockActive, requestPushPermission }
 }
