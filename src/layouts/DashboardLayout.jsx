@@ -65,7 +65,7 @@ export default function DashboardLayout() {
   const sidebarVisible = isMobile ? sidebarOpen : true
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh' }}>
+    <div style={{ display: 'flex', minHeight: '100dvh' }}>
       {/* Dispatch offer modal — only active for riders */}
       <DispatchOfferModal />
       {/* PWA install banner */}
@@ -89,7 +89,7 @@ export default function DashboardLayout() {
         position: isMobile ? 'fixed' : 'sticky',
         top: 0,
         left: 0,
-        height: '100vh',
+        height: '100dvh',
         overflow: 'hidden',
         zIndex: 50,
         transform: sidebarVisible ? 'translateX(0)' : 'translateX(-100%)',
@@ -161,13 +161,21 @@ export default function DashboardLayout() {
       {/* Main */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
         {isMobile && (
-          <div style={{ position: 'sticky', top: 0, zIndex: 30, background: 'var(--surface)', borderBottom: '1px solid var(--border)', padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
-            <button onClick={() => setSidebarOpen(true)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-primary)', padding: 4, display: 'flex' }}>
+          <div style={{ position: 'sticky', top: 0, zIndex: 30, background: 'var(--surface)', borderBottom: '1px solid var(--border)', padding: '10px 16px', display: 'flex', alignItems: 'center', gap: 10 }}>
+            <button onClick={() => setSidebarOpen(true)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-primary)', padding: 6, display: 'flex', borderRadius: 8 }}>
               <Menu size={22} />
             </button>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <img src="/logo.png" alt="DORL" style={{ height: 24, width: 'auto', objectFit: 'contain' }} />
+            <img src="/logo.png" alt="DORL" style={{ height: 26, width: 'auto', objectFit: 'contain' }} />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 13, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user?.name}</div>
+              <div style={{ fontSize: 11, color: 'var(--text-secondary)', textTransform: 'capitalize' }}>{user?.role}</div>
             </div>
+            <button
+              onClick={handleLogout}
+              style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 8, padding: '6px 12px', fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}
+            >
+              <LogOut size={15} /> Logout
+            </button>
           </div>
         )}
 

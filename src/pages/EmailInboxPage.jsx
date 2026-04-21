@@ -275,7 +275,7 @@ export default function EmailInboxPage() {
 
   return (
     // Fills the <main> viewport; flex column so the card takes remaining space after the header
-    <div style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 56px)', overflow: 'hidden' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: 'calc(100dvh - 96px)', overflow: 'hidden' }}>
       {composing && <ComposeModal onClose={() => setComposing(false)} />}
 
       {/* Page header — fixed height, doesn't scroll */}
