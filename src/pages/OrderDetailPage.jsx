@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../lib/api'
 import toast from 'react-hot-toast'
 import { useAuthStore } from '../store/authStore'
-import { Package, MapPin, ChevronRight, X, AlertTriangle, Map, FileText, Zap, UserCheck, Bike, Star } from 'lucide-react'
+import { Package, MapPin, ChevronRight, X, AlertTriangle, Map, FileText, Zap, UserCheck, Bike, Star, Phone, User, Building2 } from 'lucide-react'
 import HereMap from '../components/HereMap'
 import Select from '../components/Select'
 
@@ -197,16 +197,18 @@ function ManualAssignModal({ orderId, pickupLat, pickupLng, onClose, onSuccess }
 
 export default function OrderDetailPage() {
   const { id } = useParams()
-  const { isAdmin, isVendor } = useAuthStore()
+  const { isAdmin, isVendor, isRider } = useAuthStore()
   const qc = useQueryClient()
   const [showCancel, setShowCancel] = useState(false)
   const [showAssign, setShowAssign] = useState(false)
 
   const { data: order, isLoading } = useQuery({
     queryKey: ['order', id],
-    queryFn: () => isAdmin()
-      ? api.get(`/admin/orders/${id}`).then(r => r.data.data)
-      : api.get(`/orders/${id}`).then(r => r.data.data),
+    queryFn: () => {
+      if (isAdmin()) return api.get(`/admin/orders/${id}`).then(r => r.data.data)
+      if (isRider()) return api.get(`/rider/orders/${id}`).then(r => r.data.data)
+      return api.get(`/orders/${id}`).then(r => r.data.data)
+    },
   })
 
   const cancelMutation = useMutation({
@@ -229,10 +231,184 @@ export default function OrderDetailPage() {
   if (isLoading) return <div style={{ display: 'flex', justifyContent: 'center', padding: 64 }}><span className="spinner" /></div>
   if (!order) return <p className="text-muted">Order not found.</p>
 
-  const canCancel = ['created', 'awaiting_dispatch', 'processing'].includes(order.status)
+  const rider = isRider()
+  const canCancel = !rider && ['created', 'awaiting_dispatch', 'processing'].includes(order.status)
   const canDispatch = order.status === 'awaiting_dispatch'
   const isVendorRequestMode = isVendor?.() && order.dispatch_mode === 'request' && canDispatch
 
+  const hasMap = order.pickup_lat && order.pickup_lng && order.dropoff_lat && order.dropoff_lng
+  const mapMarkers = hasMap ? [
+    { lat: Number(order.pickup_lat), lng: Number(order.pickup_lng), label: 'P', color: '#FF5E14' },
+    { lat: Number(order.dropoff_lat), lng: Number(order.dropoff_lng), label: 'D', color: '#16A34A' },
+  ] : []
+  const mapRoute = hasMap ? [
+    { lat: Number(order.pickup_lat), lng: Number(order.pickup_lng) },
+    { lat: Number(order.dropoff_lat), lng: Number(order.dropoff_lng) },
+  ] : null
+
+  /* ── Rider view ─────────────────────────────────────────────── */
+  if (rider) {
+    return (
+      <div>
+        <div className="page-header">
+          <div>
+            <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 4 }}>
+              <Link to="/rider/deliveries" style={{ color: 'var(--text-secondary)', textDecoration: 'none' }}>Deliveries</Link>
+              <ChevronRight size={12} />
+              #{order.id}
+            </div>
+            <h1 className="page-title" style={{ margin: 0 }}>Order #{order.id}</h1>
+          </div>
+          <StatusBadge status={order.status} />
+        </div>
+
+        <div className="detail-grid">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+            {/* Addresses */}
+            <div className="card">
+              <h3 style={{ marginBottom: 16 }}>Route</h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                <div>
+                  <div style={{ fontSize: 11, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>Pickup</div>
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+                    <MapPin size={16} color="var(--primary)" style={{ marginTop: 1, flexShrink: 0 }} />
+                    <span style={{ fontSize: 14 }}>{order.pickup_address}</span>
+                  </div>
+                </div>
+                <div>
+                  <div style={{ fontSize: 11, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>Dropoff</div>
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+                    <MapPin size={16} color="var(--success)" style={{ marginTop: 1, flexShrink: 0 }} />
+                    <span style={{ fontSize: 14 }}>{order.dropoff_address}</span>
+                  </div>
+                </div>
+                {order.distance_km && (
+                  <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
+                    Distance: <strong style={{ color: 'var(--text-primary)' }}>{Number(order.distance_km).toFixed(2)} km</strong>
+                  </div>
+                )}
+              </div>
+              {hasMap && (
+                <div style={{ marginTop: 16, borderRadius: 10, overflow: 'hidden' }}>
+                  <HereMap markers={mapMarkers} route={mapRoute} height="220px" zoom={13} />
+                </div>
+              )}
+            </div>
+
+            {/* Packages */}
+            <div className="card">
+              <h3 style={{ marginBottom: 16 }}>
+                <Package size={16} style={{ marginRight: 6, verticalAlign: 'middle' }} />
+                Packages
+              </h3>
+              {order.packages?.map((pkg) => (
+                <div key={pkg.id} style={{ border: '1px solid var(--border)', borderRadius: 10, padding: 14, marginBottom: 10 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                    <span style={{ fontWeight: 600, fontSize: 14 }}>{pkg.name}</span>
+                    <StatusBadge status={pkg.status} />
+                  </div>
+                  <div style={{ fontSize: 13, color: 'var(--text-secondary)', display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+                    <span>Category: <strong style={{ color: 'var(--text-primary)' }}>{pkg.category}</strong></span>
+                    <span>Weight: <strong style={{ color: 'var(--text-primary)' }}>{pkg.weight_kg} kg</strong></span>
+                  </div>
+                  <div style={{ display: 'flex', gap: 12, marginTop: 6, fontSize: 12, color: 'var(--text-secondary)' }}>
+                    {pkg.is_fragile && <span style={{ color: 'var(--warning)', fontWeight: 600 }}>⚠ Fragile</span>}
+                    {pkg.requires_photo && <span>Photo required</span>}
+                    {pkg.requires_signature && <span>Signature required</span>}
+                  </div>
+                  {pkg.description && (
+                    <div style={{ marginTop: 8, fontSize: 13, color: 'var(--text-secondary)', background: 'var(--surface-muted)', borderRadius: 6, padding: '6px 10px' }}>
+                      {pkg.description}
+                    </div>
+                  )}
+                  {pkg.tracking_events?.length > 0 && (
+                    <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--border)' }}>
+                      <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 8 }}>Timeline</div>
+                      <Timeline events={pkg.tracking_events} />
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Right column */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+            {/* Recipient */}
+            {(order.recipient_name || order.recipient_phone) && (
+              <div className="card">
+                <h3 style={{ marginBottom: 14 }}>Recipient</h3>
+                {order.recipient_name && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                    <User size={16} color="var(--text-secondary)" />
+                    <span style={{ fontSize: 14, fontWeight: 600 }}>{order.recipient_name}</span>
+                  </div>
+                )}
+                {order.recipient_phone && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                    <Phone size={16} color="var(--text-secondary)" />
+                    <span style={{ fontSize: 14 }}>{order.recipient_phone}</span>
+                    <a
+                      href={`tel:${order.recipient_phone}`}
+                      className="btn btn-primary btn-sm"
+                      style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 4 }}
+                    >
+                      <Phone size={13} /> Call
+                    </a>
+                  </div>
+                )}
+                {order.delivery_notes && (
+                  <div>
+                    <div style={{ fontSize: 11, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>Delivery Notes</div>
+                    <div style={{ fontSize: 13, background: 'var(--surface-muted)', borderRadius: 8, padding: '8px 12px', lineHeight: 1.5 }}>
+                      {order.delivery_notes}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Vendor */}
+            {order.vendor && (
+              <div className="card">
+                <h3 style={{ marginBottom: 12 }}>Vendor</h3>
+                <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                  <div style={{ width: 36, height: 36, borderRadius: 8, background: 'var(--surface-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <Building2 size={18} color="var(--text-secondary)" />
+                  </div>
+                  <div>
+                    <div style={{ fontWeight: 600, fontSize: 14 }}>{order.vendor.name ?? order.vendor.business_name}</div>
+                    {order.vendor.phone && <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{order.vendor.phone}</div>}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Order info */}
+            <div className="card">
+              <h3 style={{ marginBottom: 14 }}>Details</h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10, fontSize: 13 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ color: 'var(--text-secondary)' }}>Order #</span>
+                  <span style={{ fontWeight: 600 }}>{order.id}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ color: 'var(--text-secondary)' }}>Status</span>
+                  <StatusBadge status={order.status} />
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ color: 'var(--text-secondary)' }}>Created</span>
+                  <span>{new Date(order.created_at).toLocaleString()}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  /* ── Vendor / Admin view ────────────────────────────────────── */
   return (
     <div>
       {showCancel && <CancelModal onConfirm={cancelMutation.mutate} onClose={() => setShowCancel(false)} loading={cancelMutation.isPending} />}
@@ -250,7 +426,6 @@ export default function OrderDetailPage() {
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
           <Link to={`/orders/${id}/tracking`} className="btn btn-secondary"><Map size={15} /> Track</Link>
 
-          {/* Admin: trigger dispatch or manually assign */}
           {isAdmin() && canDispatch && (
             <>
               <button className="btn btn-primary" onClick={() => dispatchMutation.mutate()} disabled={dispatchMutation.isPending}>
@@ -262,7 +437,6 @@ export default function OrderDetailPage() {
             </>
           )}
 
-          {/* Vendor: request dispatch (request mode only) */}
           {isVendorRequestMode && (
             <button className="btn btn-primary" onClick={() => dispatchMutation.mutate()} disabled={dispatchMutation.isPending}>
               <Zap size={15} /> {dispatchMutation.isPending ? 'Requesting…' : 'Request Dispatch'}

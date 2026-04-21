@@ -1,10 +1,10 @@
-import { useState, useEffect, useRef, useMemo } from 'react'
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import api from '../lib/api'
 import toast from 'react-hot-toast'
 import { useAuthStore } from '../store/authStore'
-import { Power, MapPin, Navigation, Package, Star, Clock, ChevronRight, Wifi, WifiOff, Bell, Sun, CheckCircle, AlertTriangle, Maximize2, X, Phone, User } from 'lucide-react'
+import { Power, MapPin, Navigation, Package, Star, Clock, ChevronRight, Wifi, WifiOff, Bell, Sun, CheckCircle, AlertTriangle, Maximize2, X, Phone, User, Info, RefreshCw } from 'lucide-react'
 import HereMap from '../components/HereMap'
 import { useRiderPWA } from '../hooks/useRiderPWA'
 import AppDownloadBanner from '../components/AppDownloadBanner'
@@ -45,13 +45,15 @@ export default function RiderDashboardPage() {
   const [myPos, setMyPos] = useState(null)
   const [locationError, setLocationError] = useState(null)
   const [mapExpanded, setMapExpanded] = useState(false)
+  const [showStatusInfo, setShowStatusInfo] = useState(false)
   const watchRef = useRef(null)
   const sendIntervalRef = useRef(null)
 
-  // Fetch rider profile (online status, score, etc.)
-  const { data: profile } = useQuery({
+  // Fetch rider profile — auto-syncs every 30s to keep online status accurate
+  const { data: profile, isFetching: profileSyncing, refetch: refetchProfile } = useQuery({
     queryKey: ['rider-profile'],
     queryFn: () => api.get('/auth/me').then(r => r.data.data),
+    refetchInterval: 30_000,
   })
 
   // Fetch active delivery
@@ -172,21 +174,70 @@ export default function RiderDashboardPage() {
           <h1 className="page-title">Rider Dashboard</h1>
           <p className="text-sm text-muted">Hello, {user?.name}</p>
         </div>
-        <button
-          className="btn"
-          style={{
-            background: isOnline ? 'var(--success)' : 'var(--surface-muted)',
-            color: isOnline ? '#fff' : 'var(--text-primary)',
-            border: `2px solid ${isOnline ? 'var(--success)' : 'var(--border)'}`,
-            fontSize: 15, padding: '10px 20px',
-            animation: isOnline ? 'none' : undefined,
-          }}
-          onClick={() => toggleOnline.mutate(!isOnline)}
-          disabled={toggleOnline.isPending}
-        >
-          <Power size={17} />
-          {toggleOnline.isPending ? 'Updating…' : isOnline ? 'Online' : 'Go Online'}
-        </button>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, position: 'relative' }}>
+          {/* Sync indicator */}
+          {profileSyncing && !toggleOnline.isPending && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: 'var(--text-secondary)', animation: 'fadeIn 0.2s' }}>
+              <RefreshCw size={12} style={{ animation: 'spin 1s linear infinite' }} />
+              Syncing status…
+            </div>
+          )}
+
+          {/* Info button */}
+          <div style={{ position: 'relative' }}>
+            <button
+              onClick={() => setShowStatusInfo(v => !v)}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: 'var(--text-secondary)', display: 'flex', alignItems: 'center' }}
+              title="Online status info"
+            >
+              <Info size={17} />
+            </button>
+
+            {showStatusInfo && (
+              <>
+                {/* Backdrop to close */}
+                <div style={{ position: 'fixed', inset: 0, zIndex: 49 }} onClick={() => setShowStatusInfo(false)} />
+                <div style={{
+                  position: 'absolute', right: 0, top: 32, zIndex: 50,
+                  background: 'var(--surface)', border: '1px solid var(--border)',
+                  borderRadius: 12, padding: '14px 16px', width: 260,
+                  boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+                }}>
+                  <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 8 }}>Online Status Tips</div>
+                  <ul style={{ margin: 0, paddingLeft: 16, fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.7 }}>
+                    <li>Your status auto-syncs every <strong>30 seconds</strong> for accuracy.</li>
+                    <li>If your status seems stuck, <strong>toggle off then on</strong> to force a refresh.</li>
+                    <li>GPS updates are sent every <strong>15 seconds</strong> while online.</li>
+                  </ul>
+                  <button
+                    className="btn btn-secondary btn-sm"
+                    style={{ width: '100%', justifyContent: 'center', marginTop: 12 }}
+                    onClick={() => { refetchProfile(); setShowStatusInfo(false) }}
+                  >
+                    <RefreshCw size={13} /> Sync now
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* Online toggle */}
+          <button
+            className="btn"
+            style={{
+              background: isOnline ? 'var(--success)' : 'var(--surface-muted)',
+              color: isOnline ? '#fff' : 'var(--text-primary)',
+              border: `2px solid ${isOnline ? 'var(--success)' : 'var(--border)'}`,
+              fontSize: 15, padding: '10px 20px',
+            }}
+            onClick={() => toggleOnline.mutate(!isOnline)}
+            disabled={toggleOnline.isPending}
+          >
+            <Power size={17} />
+            {toggleOnline.isPending ? 'Updating…' : isOnline ? 'Online' : 'Go Online'}
+          </button>
+        </div>
       </div>
 
       {/* Permission banners */}
