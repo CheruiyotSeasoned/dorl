@@ -1,8 +1,8 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../lib/api'
 import toast from 'react-hot-toast'
-import { Mail, Send, ChevronLeft, Inbox, PenSquare, X } from 'lucide-react'
+import { Mail, Send, ChevronLeft, Inbox, PenSquare, X, Circle } from 'lucide-react'
 
 function ThreadList({ threads, selectedId, onSelect }) {
   if (!threads.length) return <p className="text-muted text-sm" style={{ padding: 16 }}>No threads yet.</p>
@@ -11,24 +11,32 @@ function ThreadList({ threads, selectedId, onSelect }) {
       {threads.map(t => {
         const preview = t.messages?.[0]
         const sender = preview?.from_address ?? (t.participants?.[0] ?? '—')
+        const unread = t.is_unread
         return (
           <div
             key={t.id}
             onClick={() => onSelect(t)}
             style={{
               padding: '12px 16px', cursor: 'pointer', borderBottom: '1px solid var(--border)',
-              background: selectedId === t.id ? 'var(--primary)08' : 'transparent',
+              background: selectedId === t.id ? 'var(--surface-muted)' : 'transparent',
               borderLeft: selectedId === t.id ? '3px solid var(--primary)' : '3px solid transparent',
             }}
           >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 }}>
-              <span style={{ fontWeight: 600, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '70%' }}>
-                {t.subject ?? '(no subject)'}
-              </span>
-              <span className={`badge ${t.status === 'open' ? 'badge-success' : 'badge-neutral'}`} style={{ fontSize: 10 }}>{t.status}</span>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4, gap: 6 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
+                {unread && (
+                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--primary)', flexShrink: 0 }} />
+                )}
+                <span style={{ fontWeight: unread ? 700 : 500, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {t.subject ?? '(no subject)'}
+                </span>
+              </div>
+              <span className={`badge ${t.status === 'open' ? 'badge-success' : 'badge-neutral'}`} style={{ fontSize: 10, flexShrink: 0 }}>{t.status}</span>
             </div>
-            <div style={{ fontSize: 12, color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{sender}</div>
-            <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 4 }}>
+            <div style={{ fontSize: 12, color: unread ? 'var(--text-primary)' : 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', paddingLeft: unread ? 14 : 0 }}>
+              {sender}
+            </div>
+            <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 4, paddingLeft: unread ? 14 : 0 }}>
               {new Date(t.updated_at).toLocaleString()}
             </div>
           </div>
@@ -64,14 +72,25 @@ function MessageBubble({ msg }) {
 function ThreadDetail({ thread, onBack }) {
   const qc = useQueryClient()
   const [reply, setReply] = useState('')
+  const bottomRef = useRef(null)
 
   const { data: threadData, isLoading } = useQuery({
     queryKey: ['email-thread', thread.id],
-    queryFn: () => api.get(`/admin/email/threads/${thread.id}`).then(r => r.data.data),
+    queryFn: () => api.get(`/admin/email/threads/${thread.id}`).then(r => {
+      qc.invalidateQueries(['email-threads']) // refresh unread state in list
+      return r.data.data
+    }),
     refetchInterval: 15_000,
   })
 
   const messages = threadData?.messages ?? []
+
+  // Scroll to bottom whenever messages load or new ones arrive
+  useEffect(() => {
+    if (messages.length) {
+      bottomRef.current?.scrollIntoView({ behavior: 'instant' })
+    }
+  }, [messages.length, thread.id])
 
   const sendMutation = useMutation({
     mutationFn: (body) => api.post(`/admin/email/threads/${thread.id}/reply`, { body }),
@@ -118,7 +137,10 @@ function ThreadDetail({ thread, onBack }) {
         ) : messages.length === 0 ? (
           <p className="text-muted text-sm" style={{ textAlign: 'center', padding: 32 }}>No messages yet.</p>
         ) : (
-          messages.map(msg => <MessageBubble key={msg.id} msg={msg} />)
+          <>
+            {messages.map(msg => <MessageBubble key={msg.id} msg={msg} />)}
+            <div ref={bottomRef} />
+          </>
         )}
       </div>
 
