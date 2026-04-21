@@ -2,24 +2,31 @@ import { useState, useRef, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../lib/api'
 import toast from 'react-hot-toast'
-import { Mail, Send, ChevronLeft, Inbox, PenSquare, X, Circle } from 'lucide-react'
+import { Mail, Send, ChevronLeft, Inbox, PenSquare, X } from 'lucide-react'
+
+// ─── Thread List (left panel) ───────────────────────────────────────────────
 
 function ThreadList({ threads, selectedId, onSelect }) {
-  if (!threads.length) return <p className="text-muted text-sm" style={{ padding: 16 }}>No threads yet.</p>
+  if (!threads.length) {
+    return <p className="text-muted text-sm" style={{ padding: 16 }}>No threads yet.</p>
+  }
   return (
     <div>
       {threads.map(t => {
         const preview = t.messages?.[0]
-        const sender = preview?.from_address ?? (t.participants?.[0] ?? '—')
-        const unread = t.is_unread
+        const sender  = preview?.from_address ?? (t.participants?.[0] ?? '—')
+        const unread  = t.is_unread
+        const active  = selectedId === t.id
         return (
           <div
             key={t.id}
             onClick={() => onSelect(t)}
             style={{
-              padding: '12px 16px', cursor: 'pointer', borderBottom: '1px solid var(--border)',
-              background: selectedId === t.id ? 'var(--surface-muted)' : 'transparent',
-              borderLeft: selectedId === t.id ? '3px solid var(--primary)' : '3px solid transparent',
+              padding: '12px 16px',
+              cursor: 'pointer',
+              borderBottom: '1px solid var(--border)',
+              background: active ? 'var(--surface-muted)' : 'transparent',
+              borderLeft: active ? '3px solid var(--primary)' : '3px solid transparent',
             }}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4, gap: 6 }}>
@@ -31,7 +38,9 @@ function ThreadList({ threads, selectedId, onSelect }) {
                   {t.subject ?? '(no subject)'}
                 </span>
               </div>
-              <span className={`badge ${t.status === 'open' ? 'badge-success' : 'badge-neutral'}`} style={{ fontSize: 10, flexShrink: 0 }}>{t.status}</span>
+              <span className={`badge ${t.status === 'open' ? 'badge-success' : 'badge-neutral'}`} style={{ fontSize: 10, flexShrink: 0 }}>
+                {t.status}
+              </span>
             </div>
             <div style={{ fontSize: 12, color: unread ? 'var(--text-primary)' : 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', paddingLeft: unread ? 14 : 0 }}>
               {sender}
@@ -46,12 +55,15 @@ function ThreadList({ threads, selectedId, onSelect }) {
   )
 }
 
+// ─── Message Bubble ──────────────────────────────────────────────────────────
+
 function MessageBubble({ msg }) {
   const isOutbound = msg.direction === 'outbound'
   return (
     <div style={{ display: 'flex', justifyContent: isOutbound ? 'flex-end' : 'flex-start', marginBottom: 12 }}>
       <div style={{
-        maxWidth: '70%', padding: '10px 14px',
+        maxWidth: '70%',
+        padding: '10px 14px',
         borderRadius: isOutbound ? '12px 12px 2px 12px' : '12px 12px 12px 2px',
         background: isOutbound ? 'var(--primary)' : 'var(--surface-muted)',
         color: isOutbound ? '#fff' : 'var(--text-primary)',
@@ -69,28 +81,43 @@ function MessageBubble({ msg }) {
   )
 }
 
+// ─── Thread Detail (right panel) ─────────────────────────────────────────────
+
 function ThreadDetail({ thread, onBack }) {
   const qc = useQueryClient()
-  const [reply, setReply] = useState('')
-  const bottomRef = useRef(null)
+  const [reply, setReply]   = useState('')
+  const scrollRef           = useRef(null)
+  const bottomRef           = useRef(null)
+  const prevCountRef        = useRef(0)
 
   const { data: threadData, isLoading } = useQuery({
     queryKey: ['email-thread', thread.id],
-    queryFn: () => api.get(`/admin/email/threads/${thread.id}`).then(r => {
-      qc.invalidateQueries(['email-threads']) // refresh unread state in list
-      return r.data.data
-    }),
+    queryFn: () =>
+      api.get(`/admin/email/threads/${thread.id}`).then(r => {
+        qc.invalidateQueries(['email-threads'])
+        return r.data.data
+      }),
     refetchInterval: 15_000,
   })
 
   const messages = threadData?.messages ?? []
 
-  // Scroll to bottom whenever messages load or new ones arrive
+  // Jump to bottom on first load and when new messages arrive
   useEffect(() => {
-    if (messages.length) {
-      bottomRef.current?.scrollIntoView({ behavior: 'instant' })
+    if (!messages.length) return
+    const isNewMessage = messages.length > prevCountRef.current
+    const isFirstLoad  = prevCountRef.current === 0
+    prevCountRef.current = messages.length
+
+    if (isFirstLoad || isNewMessage) {
+      bottomRef.current?.scrollIntoView({ behavior: isFirstLoad ? 'instant' : 'smooth' })
     }
   }, [messages.length, thread.id])
+
+  // Reset count when switching threads
+  useEffect(() => {
+    prevCountRef.current = 0
+  }, [thread.id])
 
   const sendMutation = useMutation({
     mutationFn: (body) => api.post(`/admin/email/threads/${thread.id}/reply`, { body }),
@@ -112,11 +139,15 @@ function ThreadDetail({ thread, onBack }) {
     },
   })
 
-  const sender = thread.participants?.[0] ?? messages.find(m => m.direction === 'inbound')?.from_address ?? '—'
+  const sender = thread.participants?.[0]
+    ?? messages.find(m => m.direction === 'inbound')?.from_address
+    ?? '—'
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', display: 'flex', gap: 10, alignItems: 'center' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', height: '100%' }}>
+
+      {/* Fixed header */}
+      <div style={{ flexShrink: 0, padding: '12px 16px', borderBottom: '1px solid var(--border)', display: 'flex', gap: 10, alignItems: 'center' }}>
         <button className="btn btn-ghost btn-sm" onClick={onBack}><ChevronLeft size={16} /></button>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontWeight: 600, fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -131,7 +162,8 @@ function ThreadDetail({ thread, onBack }) {
         )}
       </div>
 
-      <div style={{ flex: 1, overflowY: 'auto', padding: 16 }}>
+      {/* Scrollable message area */}
+      <div ref={scrollRef} style={{ flex: 1, overflowY: 'auto', padding: 16 }}>
         {isLoading ? (
           <div style={{ display: 'flex', justifyContent: 'center', padding: 32 }}><span className="spinner" /></div>
         ) : messages.length === 0 ? (
@@ -144,8 +176,9 @@ function ThreadDetail({ thread, onBack }) {
         )}
       </div>
 
+      {/* Fixed reply box */}
       {thread.status !== 'closed' && (
-        <div style={{ padding: 16, borderTop: '1px solid var(--border)' }}>
+        <div style={{ flexShrink: 0, padding: 16, borderTop: '1px solid var(--border)' }}>
           <div style={{ display: 'flex', gap: 10 }}>
             <textarea
               className="form-control"
@@ -171,6 +204,8 @@ function ThreadDetail({ thread, onBack }) {
     </div>
   )
 }
+
+// ─── Compose Modal ───────────────────────────────────────────────────────────
 
 function ComposeModal({ onClose }) {
   const qc = useQueryClient()
@@ -224,9 +259,11 @@ function ComposeModal({ onClose }) {
   )
 }
 
+// ─── Page ────────────────────────────────────────────────────────────────────
+
 export default function EmailInboxPage() {
   const [selectedThread, setSelectedThread] = useState(null)
-  const [composing, setComposing] = useState(false)
+  const [composing, setComposing]           = useState(false)
 
   const { data, isLoading } = useQuery({
     queryKey: ['email-threads'],
@@ -237,11 +274,15 @@ export default function EmailInboxPage() {
   const threads = data?.data ?? data ?? []
 
   return (
-    <div>
+    // Fills the <main> viewport; flex column so the card takes remaining space after the header
+    <div style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 56px)', overflow: 'hidden' }}>
       {composing && <ComposeModal onClose={() => setComposing(false)} />}
 
-      <div className="page-header">
-        <h1 className="page-title"><Inbox size={20} style={{ marginRight: 8, verticalAlign: 'middle' }} />Email Inbox</h1>
+      {/* Page header — fixed height, doesn't scroll */}
+      <div className="page-header" style={{ flexShrink: 0 }}>
+        <h1 className="page-title">
+          <Inbox size={20} style={{ marginRight: 8, verticalAlign: 'middle' }} />Email Inbox
+        </h1>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--success)' }} />
@@ -253,36 +294,45 @@ export default function EmailInboxPage() {
         </div>
       </div>
 
-      <div className="card" style={{ padding: 0, overflow: 'hidden', height: 'calc(100vh - 180px)', display: 'flex', flexDirection: 'column' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: selectedThread ? '300px 1fr' : '1fr', flex: 1, minHeight: 0 }}>
-          {/* Thread list */}
-          <div style={{ borderRight: selectedThread ? '1px solid var(--border)' : 'none', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-            <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-              <Mail size={15} color="var(--text-secondary)" />
-              <span style={{ fontWeight: 600, fontSize: 13 }}>Threads</span>
-              {threads.length > 0 && (
-                <span style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--text-secondary)' }}>{threads.length}</span>
-              )}
-            </div>
-            <div style={{ flex: 1, overflowY: 'auto' }}>
-              {isLoading ? (
-                <div style={{ display: 'flex', justifyContent: 'center', padding: 32 }}><span className="spinner" /></div>
-              ) : (
-                <ThreadList threads={threads} selectedId={selectedThread?.id} onSelect={setSelectedThread} />
-              )}
-            </div>
+      {/* Two-panel card — fills all remaining height */}
+      <div className="card" style={{ flex: 1, minHeight: 0, padding: 0, overflow: 'hidden', display: 'flex' }}>
+        {/* Left: thread list */}
+        <div style={{
+          width: selectedThread ? 300 : '100%',
+          flexShrink: 0,
+          borderRight: selectedThread ? '1px solid var(--border)' : 'none',
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'hidden',
+        }}>
+          {/* List header */}
+          <div style={{ flexShrink: 0, padding: '12px 16px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Mail size={15} color="var(--text-secondary)" />
+            <span style={{ fontWeight: 600, fontSize: 13 }}>Threads</span>
+            {threads.length > 0 && (
+              <span style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--text-secondary)' }}>{threads.length}</span>
+            )}
           </div>
-
-          {/* Thread detail */}
-          {selectedThread ? (
-            <ThreadDetail thread={selectedThread} onBack={() => setSelectedThread(null)} />
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 48, color: 'var(--text-secondary)' }}>
-              <Mail size={40} style={{ marginBottom: 12, opacity: 0.3 }} />
-              <p className="text-sm">Select a thread to read messages</p>
-            </div>
-          )}
+          {/* Scrollable list */}
+          <div style={{ flex: 1, overflowY: 'auto' }}>
+            {isLoading
+              ? <div style={{ display: 'flex', justifyContent: 'center', padding: 32 }}><span className="spinner" /></div>
+              : <ThreadList threads={threads} selectedId={selectedThread?.id} onSelect={setSelectedThread} />
+            }
+          </div>
         </div>
+
+        {/* Right: thread detail or empty state */}
+        {selectedThread ? (
+          <div style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
+            <ThreadDetail thread={selectedThread} onBack={() => setSelectedThread(null)} />
+          </div>
+        ) : (
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)' }}>
+            <Mail size={40} style={{ marginBottom: 12, opacity: 0.3 }} />
+            <p className="text-sm">Select a thread to read messages</p>
+          </div>
+        )}
       </div>
     </div>
   )
