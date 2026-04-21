@@ -253,22 +253,24 @@ export default function EmailInboxPage() {
         </div>
       </div>
 
-      <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: selectedThread ? '300px 1fr' : '1fr', minHeight: 500 }}>
+      <div className="card" style={{ padding: 0, overflow: 'hidden', height: 'calc(100vh - 180px)', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: selectedThread ? '300px 1fr' : '1fr', flex: 1, minHeight: 0 }}>
           {/* Thread list */}
-          <div style={{ borderRight: selectedThread ? '1px solid var(--border)' : 'none' }}>
-            <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ borderRight: selectedThread ? '1px solid var(--border)' : 'none', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+            <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
               <Mail size={15} color="var(--text-secondary)" />
               <span style={{ fontWeight: 600, fontSize: 13 }}>Threads</span>
               {threads.length > 0 && (
                 <span style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--text-secondary)' }}>{threads.length}</span>
               )}
             </div>
-            {isLoading ? (
-              <div style={{ display: 'flex', justifyContent: 'center', padding: 32 }}><span className="spinner" /></div>
-            ) : (
-              <ThreadList threads={threads} selectedId={selectedThread?.id} onSelect={setSelectedThread} />
-            )}
+            <div style={{ flex: 1, overflowY: 'auto' }}>
+              {isLoading ? (
+                <div style={{ display: 'flex', justifyContent: 'center', padding: 32 }}><span className="spinner" /></div>
+              ) : (
+                <ThreadList threads={threads} selectedId={selectedThread?.id} onSelect={setSelectedThread} />
+              )}
+            </div>
           </div>
 
           {/* Thread detail */}
