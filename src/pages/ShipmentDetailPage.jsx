@@ -201,12 +201,12 @@ function ItemRow({ item, stations, onReceive, onConvertToOrder, isAdmin }) {
         <button className="btn btn-secondary btn-sm" onClick={printLabel}>
           <Printer size={13} /> Print Label
         </button>
-        {isAdmin && item.order_id && (
-          <Link to={`/admin/orders/${item.order_id}`} className="btn btn-secondary btn-sm" style={{ color: '#3b82f6' }}>
+        {item.order_id && (
+          <Link to={`/orders/${item.order_id}`} className="btn btn-secondary btn-sm" style={{ color: '#3b82f6' }}>
             <ShoppingBag size={13} /> Order #{item.order_id}
           </Link>
         )}
-        {isAdmin && !item.order_id && (
+        {!item.order_id && (
           <button
             className="btn btn-secondary btn-sm"
             style={{ color: 'var(--primary)' }}
@@ -355,7 +355,7 @@ export default function ShipmentDetailPage() {
 
   const convertToOrder = useMutation({
     mutationFn: ({ itemId, form }) =>
-      api.post(`/admin/shipments/${id}/items/${itemId}/convert-to-order`, {
+      api.post(`/shipments/${id}/items/${itemId}/convert-to-order`, {
         pickup_address:  form.pickup_address,
         pickup_lat:      parseFloat(form.pickup_lat),
         pickup_lng:      parseFloat(form.pickup_lng),
