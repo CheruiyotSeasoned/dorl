@@ -3,10 +3,14 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../lib/api'
 import toast from 'react-hot-toast'
 import { useAuthStore } from '../store/authStore'
-import { Search, UserPlus, CheckCircle, XCircle, Trash2, UserCheck, ShieldCheck, ShieldOff, X, Star, Pencil, Eye, EyeOff } from 'lucide-react'
+import { Search, UserPlus, CheckCircle, XCircle, Trash2, UserCheck, ShieldCheck, ShieldOff, X, Star, Pencil } from 'lucide-react'
 import Select from '../components/Select'
+import PasswordInput from '../components/PasswordInput'
 
-const ROLE_BADGE = { admin: 'badge-primary', vendor: 'badge-neutral', rider: 'badge-warning' }
+const ROLE_BADGE = {
+  admin: 'badge-primary', vendor: 'badge-neutral', rider: 'badge-warning',
+  station_agent: 'badge-info', warehouse_staff: 'badge-secondary',
+}
 
 function Avatar({ name }) {
   return (
@@ -17,13 +21,19 @@ function Avatar({ name }) {
 }
 
 function CreateUserModal({ onClose, onSuccess, currentUserIsSuperAdmin }) {
-  const [form, setForm] = useState({ name: '', email: '', phone: '', password: '', role: 'vendor', vendor_id: '', vehicle_type: 'motorbike', is_super_admin: false })
+  const [form, setForm] = useState({ name: '', email: '', phone: '', password: '', role: 'vendor', vendor_id: '', pickup_station_id: '', vehicle_type: 'motorbike', is_super_admin: false })
   const [loading, setLoading] = useState(false)
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
 
   const { data: vendorsList } = useQuery({
     queryKey: ['vendors-list'],
     queryFn: () => api.get('/vendors').then(r => r.data.data ?? []),
+  })
+
+  const { data: stationsList } = useQuery({
+    queryKey: ['pickup-stations'],
+    queryFn: () => api.get('/pickup-stations').then(r => r.data.data ?? []),
+    enabled: form.role === 'station_agent',
   })
 
   const handleSubmit = async (e) => {
@@ -42,8 +52,8 @@ function CreateUserModal({ onClose, onSuccess, currentUserIsSuperAdmin }) {
   }
 
   const availableRoles = currentUserIsSuperAdmin
-    ? [['vendor', 'Vendor'], ['rider', 'Rider'], ['admin', 'Admin']]
-    : [['vendor', 'Vendor'], ['rider', 'Rider']]
+    ? [['vendor','Vendor'],['rider','Rider'],['station_agent','Station Agent'],['warehouse_staff','Warehouse Staff'],['admin','Admin']]
+    : [['vendor','Vendor'],['rider','Rider'],['station_agent','Station Agent'],['warehouse_staff','Warehouse Staff']]
 
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 16 }}>
@@ -76,7 +86,7 @@ function CreateUserModal({ onClose, onSuccess, currentUserIsSuperAdmin }) {
               value={form.role}
               onChange={e => {
                 const newRole = e.target.value
-                setForm(f => ({ ...f, role: newRole, vendor_id: newRole === 'vendor' ? f.vendor_id : '' }))
+                setForm(f => ({ ...f, role: newRole, vendor_id: '', pickup_station_id: '' }))
               }}
               options={availableRoles}
             />
@@ -100,6 +110,24 @@ function CreateUserModal({ onClose, onSuccess, currentUserIsSuperAdmin }) {
             </div>
           )}
 
+          {form.role === 'station_agent' && (
+            <div className="form-group">
+              <label className="form-label">Assigned Pickup Station <span style={{ color: 'var(--danger)' }}>*</span></label>
+              {(stationsList ?? []).length === 0 ? (
+                <p style={{ fontSize: 13, color: 'var(--danger)', margin: '4px 0 0' }}>
+                  No active pickup stations found. <strong>Create a pickup station first</strong>.
+                </p>
+              ) : (
+                <Select
+                  value={form.pickup_station_id}
+                  onChange={e => set('pickup_station_id', e.target.value)}
+                  placeholder="— Select station —"
+                  options={(stationsList ?? []).map(s => ({ value: s.id, label: `${s.name} — ${s.town}` }))}
+                />
+              )}
+            </div>
+          )}
+
           {form.role === 'rider' && (
             <div className="form-group">
               <label className="form-label">Vehicle Type</label>
@@ -118,7 +146,7 @@ function CreateUserModal({ onClose, onSuccess, currentUserIsSuperAdmin }) {
 
           <div className="form-group">
             <label className="form-label">Temporary Password</label>
-            <input type="password" className="form-control" required minLength={8} value={form.password} onChange={e => set('password', e.target.value)} />
+            <PasswordInput required minLength={8} value={form.password} onChange={e => set('password', e.target.value)} placeholder="Min. 8 characters" />
             <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>User can change this after logging in</span>
           </div>
 
@@ -163,8 +191,8 @@ function RoleChangeModal({ user, onClose, onSuccess, currentUserIsSuperAdmin }) 
   }
 
   const availableRoles = currentUserIsSuperAdmin
-    ? [['vendor', 'Vendor'], ['rider', 'Rider'], ['admin', 'Admin']]
-    : [['vendor', 'Vendor'], ['rider', 'Rider']]
+    ? [['vendor','Vendor'],['rider','Rider'],['station_agent','Station Agent'],['warehouse_staff','Warehouse Staff'],['admin','Admin']]
+    : [['vendor','Vendor'],['rider','Rider'],['station_agent','Station Agent'],['warehouse_staff','Warehouse Staff']]
 
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
@@ -193,7 +221,7 @@ function RoleChangeModal({ user, onClose, onSuccess, currentUserIsSuperAdmin }) 
 
 function EditUserModal({ user, onClose, onSuccess }) {
   const [form, setForm] = useState({ name: user.name, email: user.email, phone: user.phone ?? '', password: '' })
-  const [showPw, setShowPw] = useState(false)
+
   const [loading, setLoading] = useState(false)
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
 
@@ -243,21 +271,7 @@ function EditUserModal({ user, onClose, onSuccess }) {
 
           <div className="form-group">
             <label className="form-label">New Password <span style={{ fontWeight: 400, color: 'var(--text-secondary)', fontSize: 11 }}>(leave blank to keep current)</span></label>
-            <div style={{ position: 'relative' }}>
-              <input
-                type={showPw ? 'text' : 'password'}
-                className="form-control"
-                value={form.password}
-                onChange={e => set('password', e.target.value)}
-                placeholder="••••••••"
-                minLength={form.password ? 8 : undefined}
-                style={{ paddingRight: 40 }}
-              />
-              <button type="button" onClick={() => setShowPw(v => !v)}
-                style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)', display: 'flex' }}>
-                {showPw ? <EyeOff size={15} /> : <Eye size={15} />}
-              </button>
-            </div>
+            <PasswordInput value={form.password} onChange={e => set('password', e.target.value)} placeholder="••••••••" minLength={form.password ? 8 : undefined} />
           </div>
 
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 8 }}>
@@ -372,10 +386,12 @@ export default function UsersPage() {
           value={roleFilter}
           onChange={e => setRoleFilter(e.target.value)}
           options={[
-            { value: 'all', label: 'All Roles' },
-            { value: 'admin', label: 'Admin' },
-            { value: 'vendor', label: 'Vendor' },
-            { value: 'rider', label: 'Rider' },
+            { value: 'all',             label: 'All Roles' },
+            { value: 'admin',           label: 'Admin' },
+            { value: 'vendor',          label: 'Vendor (Seller)' },
+            { value: 'rider',           label: 'Rider' },
+            { value: 'station_agent',   label: 'Station Agent' },
+            { value: 'warehouse_staff', label: 'Warehouse Staff' },
           ]}
         />
       </div>

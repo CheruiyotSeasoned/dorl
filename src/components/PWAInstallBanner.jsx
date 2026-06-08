@@ -29,14 +29,16 @@ export default function PWAInstallBanner() {
 
   return (
     <div style={{
-      position: 'fixed', bottom: 16, left: 16, right: 16, zIndex: 2000,
+      position: 'fixed', bottom: 16, right: 16, left: 'auto',
+      width: 'min(360px, calc(100vw - 32px))',
+      zIndex: 2000,
       background: '#0D0D0D', color: '#fff', borderRadius: 14,
       padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12,
       boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
     }}>
-      <img src="/logo.png" alt="DORL" style={{ width: 36, height: 36, objectFit: 'contain', background: '#fff', borderRadius: 8, padding: 2, flexShrink: 0 }} />
+      <img src="/logo.png" alt="SendTrack" style={{ width: 36, height: 36, objectFit: 'contain', background: '#fff', borderRadius: 8, padding: 2, flexShrink: 0 }} />
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontWeight: 700, fontSize: 14 }}>Install DORL Rider App</div>
+        <div style={{ fontWeight: 700, fontSize: 14 }}>Install SendTrack Rider App</div>
         <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', marginTop: 2 }}>Add to home screen for offline access & notifications</div>
       </div>
       <button onClick={install} style={{ background: '#FF5E14', color: '#fff', border: 'none', borderRadius: 8, padding: '8px 14px', fontWeight: 700, fontSize: 13, cursor: 'pointer', flexShrink: 0 }}>

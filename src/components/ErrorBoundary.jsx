@@ -1,4 +1,5 @@
 import { Component } from 'react'
+import { AlertTriangle } from 'lucide-react'
 
 export default class ErrorBoundary extends Component {
   state = { error: null }
@@ -12,7 +13,9 @@ export default class ErrorBoundary extends Component {
       const msg = this.state.error?.message ?? String(this.state.error)
       return (
         <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 24, textAlign: 'center', fontFamily: 'sans-serif' }}>
-          <div style={{ fontSize: 48, marginBottom: 16 }}>⚠️</div>
+          <div style={{ width: 64, height: 64, background: '#FEF2F2', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+              <AlertTriangle size={30} color="#DC2626" />
+            </div>
           <h2 style={{ marginBottom: 8, fontSize: 20 }}>Something went wrong</h2>
           <p style={{ color: '#666', marginBottom: 12, maxWidth: 360, lineHeight: 1.5 }}>
             The app encountered an unexpected error. Please refresh the page.

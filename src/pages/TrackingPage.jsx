@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../lib/api'
 import echo from '../lib/echo'
+import toast from 'react-hot-toast'
 import { useAuthStore } from '../store/authStore'
-import { ChevronRight, Wifi, Package, MapPin, Clock, Star, Zap } from 'lucide-react'
+import { ChevronRight, Wifi, Package, MapPin, Clock, Star, Zap, Share2, Check, AlertTriangle, CheckCircle2, XCircle, Phone, RefreshCw } from 'lucide-react'
 import HereMap from '../components/HereMap'
+import RiderPackageActions from '../components/RiderPackageActions'
 
 const PKG_STATUS_COLORS = {
   delivered: 'badge-success', failed_delivery: 'badge-danger',
@@ -22,37 +24,78 @@ const ORDER_STATUS_COLORS = {
 
 export default function TrackingPage() {
   const { id }  = useParams()
-  const { isAdmin, isVendor } = useAuthStore()
+  const { isAdmin, isVendor, isRider, user } = useAuthStore()
   const adminOrSuper = isAdmin()
   const vendor       = isVendor()
+  const rider        = isRider()
+  const qc           = useQueryClient()
   const [liveRider, setLiveRider] = useState(null)
+  const [copied, setCopied]       = useState(false)
 
   const { data: order, isLoading } = useQuery({
     queryKey: ['order-track', id],
-    queryFn: () => adminOrSuper
-      ? api.get(`/admin/orders/${id}`).then(r => r.data.data)
-      : api.get(`/orders/${id}`).then(r => r.data.data),
+    queryFn: () => {
+      if (adminOrSuper) return api.get(`/admin/orders/${id}`).then(r => r.data.data)
+      if (rider)        return api.get(`/rider/orders/${id}`).then(r => r.data.data)
+      return api.get(`/orders/${id}`).then(r => r.data.data)
+    },
     refetchInterval: 30_000,
   })
 
-  // Live rider location via WebSocket — admins only
+  const { data: returnRequests = [] } = useQuery({
+    queryKey: ['return-requests', id],
+    queryFn: () => api.get('/returns', { params: { order_id: id } }).then(r => r.data.data?.data ?? r.data.data ?? []),
+    enabled: !!(order && (adminOrSuper || vendor)),
+    refetchInterval: 20_000,
+  })
+
+  const approveMutation = useMutation({
+    mutationFn: ({ reqId, notes }) => api.patch(`/returns/${reqId}/approve`, { notes }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['order-track', id] }); qc.invalidateQueries({ queryKey: ['return-requests', id] }); toast.success('Return approved.') },
+    onError: (e) => toast.error(e.response?.data?.error ?? 'Failed'),
+  })
+
+  const rejectMutation = useMutation({
+    mutationFn: ({ reqId, notes }) => api.patch(`/returns/${reqId}/reject`, { notes }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['order-track', id] }); qc.invalidateQueries({ queryKey: ['return-requests', id] }); toast.success('Return rejected. Rider will re-attempt.') },
+    onError: (e) => toast.error(e.response?.data?.error ?? 'Failed'),
+  })
+
+  const redispatchMutation = useMutation({
+    mutationFn: () => api.post(`/orders/${id}/redispatch`),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['order-track', id] }); toast.success('Order redispatched.') },
+    onError: (e) => toast.error(e.response?.data?.error ?? 'Redispatch failed'),
+  })
+
+  // Live rider location — admin AND vendor (for their own orders)
   useEffect(() => {
-    if (!order?.rider_id || !adminOrSuper) return
+    if (!order?.rider_id) return
+    if (!adminOrSuper && !vendor) return
     const ch = echo.channel(`rider.${order.rider_id}`)
     ch.listen('.location.updated', (e) => {
       setLiveRider({ lat: e.latitude, lng: e.longitude, timestamp: e.timestamp })
     })
     return () => echo.leaveChannel(`rider.${order.rider_id}`)
-  }, [order?.rider_id, adminOrSuper])
+  }, [order?.rider_id, adminOrSuper, vendor])
+
+  const handleShare = () => {
+    const url = `${window.location.origin}/track?code=${order?.tracking_code}`
+    navigator.clipboard.writeText(url).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2500)
+    }).catch(() => toast.error('Could not copy link'))
+  }
 
   if (isLoading) return <div style={{ display: 'flex', justifyContent: 'center', padding: 64 }}><span className="spinner" /></div>
   if (!order)   return <p className="text-muted" style={{ padding: 32 }}>Order not found or access denied.</p>
 
   const riderProfile = order.rider?.rider_profile
+  const canRedispatch = (adminOrSuper || vendor) && (order.packages ?? []).some(p => p.status === 'returned_to_sender')
 
-  // Rider location only shown to admin
-  const riderLat = adminOrSuper ? (liveRider?.lat ?? riderProfile?.current_lat) : null
-  const riderLng = adminOrSuper ? (liveRider?.lng ?? riderProfile?.current_lng) : null
+  // Rider location shown to admin and vendor (to track their own orders)
+  const canSeeRider = adminOrSuper || vendor
+  const riderLat = canSeeRider ? (liveRider?.lat ?? riderProfile?.current_lat) : null
+  const riderLng = canSeeRider ? (liveRider?.lng ?? riderProfile?.current_lng) : null
   const isLive   = !!liveRider
 
   // Map markers
@@ -81,11 +124,32 @@ export default function TrackingPage() {
             {adminOrSuper ? 'Rider & Package Tracking' : 'Package Tracking'} — Order #{id}
           </h1>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
           <span className={`badge ${ORDER_STATUS_COLORS[order.status] ?? 'badge-neutral'}`} style={{ fontSize: 12 }}>
             {order.status?.replace(/_/g, ' ')}
           </span>
-          {adminOrSuper && order.rider_id && (
+          {/* Redispatch returned order */}
+          {canRedispatch && (
+            <button
+              onClick={() => redispatchMutation.mutate()}
+              disabled={redispatchMutation.isPending}
+              className="btn btn-primary btn-sm"
+              style={{ display: 'flex', alignItems: 'center', gap: 5 }}
+            >
+              <RefreshCw size={13} /> {redispatchMutation.isPending ? 'Redispatching…' : 'Redispatch'}
+            </button>
+          )}
+          {/* Share tracking link — vendor and admin */}
+          {(vendor || adminOrSuper) && order.tracking_code && (
+            <button
+              onClick={handleShare}
+              className="btn btn-secondary btn-sm"
+              style={{ display: 'flex', alignItems: 'center', gap: 5 }}
+            >
+              {copied ? <><Check size={13} color="var(--success)" /> Copied!</> : <><Share2 size={13} /> Share Tracking</>}
+            </button>
+          )}
+          {(adminOrSuper || vendor) && order.rider_id && (
             isLive ? (
               <div style={{ display: 'flex', alignItems: 'center', gap: 5, color: 'var(--success)', fontSize: 13, fontWeight: 600 }}>
                 <Wifi size={14} color="var(--success)" /> Live
@@ -152,20 +216,38 @@ export default function TrackingPage() {
             <div className="card">
               <h3 style={{ marginBottom: 12, fontSize: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
                 Rider
-                {adminOrSuper && isLive && <Wifi size={13} color="var(--success)" />}
+                {(adminOrSuper || vendor) && isLive && <Wifi size={13} color="var(--success)" />}
               </h3>
               <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 12 }}>
-                <div style={{ width: 44, height: 44, borderRadius: '50%', background: '#2563EB', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, fontSize: 18, flexShrink: 0 }}>
-                  {order.rider.name?.charAt(0).toUpperCase()}
+                {riderProfile?.profile_photo_url ? (
+                  <img src={riderProfile.profile_photo_url} alt={order.rider.name} style={{ width: 52, height: 52, borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--border)', flexShrink: 0 }} />
+                ) : (
+                  <div style={{ width: 52, height: 52, borderRadius: '50%', background: '#2563EB', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, fontSize: 20, flexShrink: 0 }}>
+                    {order.rider.name?.charAt(0).toUpperCase()}
+                  </div>
+                )}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 700, fontSize: 14 }}>{order.rider.name}</div>
+                  <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 1 }}>
+                    {[riderProfile?.vehicle_color, riderProfile?.vehicle_make, riderProfile?.vehicle_model].filter(Boolean).join(' ') || riderProfile?.vehicle_type || '—'}
+                  </div>
+                  {/* Plate — shown to vendor and admin */}
+                  {(adminOrSuper || vendor) && riderProfile?.vehicle_plate && (
+                    <div style={{ display: 'inline-flex', alignItems: 'center', marginTop: 4, background: '#111', color: '#fff', fontFamily: 'monospace', fontWeight: 800, fontSize: 13, letterSpacing: '0.15em', padding: '2px 10px', borderRadius: 4, border: '2px solid #fff', boxShadow: '0 0 0 2px #111' }}>
+                      {riderProfile.vehicle_plate}
+                    </div>
+                  )}
                 </div>
-                <div>
-                  <div style={{ fontWeight: 600 }}>{order.rider.name}</div>
-                  <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{riderProfile?.vehicle_type ?? '—'}</div>
-                </div>
+                {/* Phone — vendor and admin can call the rider */}
+                {(adminOrSuper || vendor) && order.rider.phone && (
+                  <a href={`tel:${order.rider.phone}`} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 13, fontWeight: 600, color: 'var(--success)', textDecoration: 'none', flexShrink: 0, background: 'var(--surface-muted)', padding: '5px 10px', borderRadius: 8, border: '1px solid var(--border)' }}>
+                    <Phone size={13} /> {order.rider.phone}
+                  </a>
+                )}
               </div>
 
-              {/* Admin: full stats + location */}
-              {adminOrSuper && riderProfile && (
+              {/* Admin + vendor: full stats + location */}
+              {(adminOrSuper || vendor) && riderProfile && (
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 10 }}>
                   {[
                     ['Status',     riderProfile.status?.replace(/_/g,' '), null],
@@ -180,7 +262,7 @@ export default function TrackingPage() {
                   ))}
                 </div>
               )}
-              {adminOrSuper && riderLat && (
+              {(adminOrSuper || vendor) && riderLat && (
                 <div style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: 4 }}>
                   <MapPin size={12} />
                   {isLive
@@ -258,7 +340,7 @@ export default function TrackingPage() {
                       <div key={ev.id} style={{ marginBottom: 8, position: 'relative' }}>
                         <div style={{ position: 'absolute', left: -17, top: 4, width: 8, height: 8, borderRadius: '50%', background: 'var(--primary)', border: '2px solid var(--surface)' }} />
                         <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>
-                          {ev.status?.replace(/_/g, ' ')}
+                          {(ev.to_status ?? ev.status)?.replace(/_/g, ' ')}
                         </div>
                         {ev.notes && <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>{ev.notes}</div>}
                         <div style={{ fontSize: 10, color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: 3, marginTop: 2 }}>
@@ -270,6 +352,15 @@ export default function TrackingPage() {
                   </div>
                 ) : (
                   <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>No events yet.</div>
+                )}
+
+                {/* Rider delivery actions (photo/signature/return) */}
+                {rider && String(order.rider_id) === String(user?.id) && (
+                  <RiderPackageActions
+                    pkg={pkg}
+                    orderId={id}
+                    onDone={() => qc.invalidateQueries({ queryKey: ['order-track', id] })}
+                  />
                 )}
               </div>
             ))}
@@ -296,8 +387,76 @@ export default function TrackingPage() {
             </div>
           )}
 
+          {/* Return requests — vendor and admin */}
+          {(adminOrSuper || vendor) && returnRequests.length > 0 && (
+            <div className="card">
+              <h3 style={{ marginBottom: 12, fontSize: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
+                <AlertTriangle size={15} color="var(--warning)" /> Return Requests
+              </h3>
+              {returnRequests.map(req => (
+                <div key={req.id} style={{ padding: '12px 0', borderBottom: '1px solid var(--border)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8, marginBottom: 6 }}>
+                    <div>
+                      <div style={{ fontWeight: 600, fontSize: 13 }}>{req.package?.name ?? `Package #${req.package_id}`}</div>
+                      <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>by {req.rider?.name ?? '—'} · {new Date(req.created_at).toLocaleString()}</div>
+                    </div>
+                    <span className={`badge ${req.status === 'approved' ? 'badge-success' : req.status === 'rejected' ? 'badge-danger' : 'badge-warning'}`} style={{ fontSize: 10, flexShrink: 0 }}>
+                      {req.status}
+                    </span>
+                  </div>
+                  <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 8 }}>{req.reason}</div>
+                  {req.resolution_notes && (
+                    <div style={{ fontSize: 12, color: 'var(--text-secondary)', background: 'var(--surface-muted)', borderRadius: 6, padding: '6px 10px', marginBottom: 8 }}>
+                      Resolution: {req.resolution_notes}
+                    </div>
+                  )}
+                  {req.status === 'pending' && (
+                    <ReturnActions reqId={req.id} approveMutation={approveMutation} rejectMutation={rejectMutation} />
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
         </div>
       </div>
+    </div>
+  )
+}
+
+function ReturnActions({ reqId, approveMutation, rejectMutation }) {
+  const [showReject, setShowReject] = useState(false)
+  const [rejectNote, setRejectNote] = useState('')
+  const busy = approveMutation.isPending || rejectMutation.isPending
+
+  return (
+    <div>
+      {!showReject ? (
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button className="btn btn-sm" disabled={busy}
+            style={{ background: 'var(--success)', color: '#fff', border: 'none', display: 'flex', alignItems: 'center', gap: 5 }}
+            onClick={() => approveMutation.mutate({ reqId, notes: '' })}>
+            {busy ? <span className="spinner" style={{ width: 11, height: 11 }} /> : <CheckCircle2 size={13} />} Approve Return
+          </button>
+          <button className="btn btn-ghost btn-sm" onClick={() => setShowReject(true)}
+            style={{ display: 'flex', alignItems: 'center', gap: 5, color: 'var(--danger)' }}>
+            <XCircle size={13} /> Reject
+          </button>
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <input className="form-control" style={{ fontSize: 12 }} placeholder="Reason for rejection (required)…"
+            value={rejectNote} onChange={e => setRejectNote(e.target.value)} />
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button className="btn btn-sm" disabled={busy || !rejectNote.trim()}
+              style={{ background: 'var(--danger)', color: '#fff', border: 'none', display: 'flex', alignItems: 'center', gap: 5 }}
+              onClick={() => rejectMutation.mutate({ reqId, notes: rejectNote })}>
+              {busy ? <span className="spinner" style={{ width: 11, height: 11 }} /> : <XCircle size={13} />} Confirm Reject
+            </button>
+            <button className="btn btn-ghost btn-sm" onClick={() => { setShowReject(false); setRejectNote('') }}>Cancel</button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

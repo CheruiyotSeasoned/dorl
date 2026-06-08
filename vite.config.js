@@ -6,6 +6,9 @@ export default defineConfig({
   build: {
     target: ['es2020', 'safari14'],
   },
+  optimizeDeps: {
+    include: ['recharts', 'recharts/es6/index'],
+  },
   plugins: [
     react(),
     VitePWA({
@@ -14,9 +17,9 @@ export default defineConfig({
       srcDir: 'src',
       filename: 'sw.js',
       manifest: {
-        name: 'DORL Rider',
-        short_name: 'DORL Rider',
-        description: 'DORL Delivery — Rider App',
+        name: 'SendTrack Rider',
+        short_name: 'SendTrack Rider',
+        description: 'SendTrack — Rider App',
         theme_color: '#FF5E14',
         background_color: '#ffffff',
         display: 'standalone',

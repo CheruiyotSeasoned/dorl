@@ -1,0 +1,17 @@
+User-agent: *
+Allow: /
+Disallow: /dashboard
+Disallow: /orders
+Disallow: /riders
+Disallow: /invoices
+Disallow: /reports
+Disallow: /settings
+Disallow: /admin
+Disallow: /onboarding
+Disallow: /login
+Disallow: /register
+Disallow: /forgot-password
+Disallow: /reset-password
+Disallow: /pickup/checkout/
+
+Sitemap: https://sendtrack.co.ke/sitemap.xml

@@ -8,12 +8,12 @@ import { Power, MapPin, Navigation, Package, Star, Clock, ChevronRight, Wifi, Wi
 import HereMap from '../components/HereMap'
 import { useRiderPWA } from '../hooks/useRiderPWA'
 import AppDownloadBanner from '../components/AppDownloadBanner'
+import RiderPackageActions from '../components/RiderPackageActions'
 
 const PKG_STATUS = {
-  assigned_to_rider: { next: 'picked_up',              label: 'Confirm Pickup',   color: 'var(--warning)' },
-  picked_up:         { next: 'in_transit',              label: 'Start Transit',    color: 'var(--primary)' },
-  in_transit:        { next: 'arrived_at_destination',  label: 'Arrived',          color: 'var(--primary)' },
-  arrived_at_destination: { next: 'delivered',          label: 'Mark Delivered',   color: 'var(--success)' },
+  assigned_to_rider: { next: 'picked_up',             label: 'Confirm Pickup', color: 'var(--warning)' },
+  picked_up:         { next: 'in_transit',             label: 'Start Transit',  color: 'var(--primary)' },
+  in_transit:        { next: 'arrived_at_destination', label: 'Arrived',        color: 'var(--primary)' },
 }
 
 function StatusStep({ status }) {
@@ -353,6 +353,11 @@ export default function RiderDashboardPage() {
                   {updatePackageStatus.isPending ? <span className="spinner" /> : PKG_STATUS[pkg.status].label}
                 </button>
               )}
+              <RiderPackageActions
+                pkg={pkg}
+                orderId={active.id}
+                onDone={() => qc.invalidateQueries({ queryKey: ['rider-active'] })}
+              />
             </div>
           ))}
 

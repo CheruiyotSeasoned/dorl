@@ -4,14 +4,16 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../lib/api'
 import toast from 'react-hot-toast'
 import { useAuthStore } from '../store/authStore'
-import { Package, MapPin, ChevronRight, X, AlertTriangle, Map, FileText, Zap, UserCheck, Bike, Star, Phone, User, Building2 } from 'lucide-react'
+import { Package, MapPin, ChevronRight, X, AlertTriangle, Map, FileText, Zap, UserCheck, Bike, Star, Phone, User, Building2, Warehouse, CalendarClock, Truck, Printer } from 'lucide-react'
 import HereMap from '../components/HereMap'
 import Select from '../components/Select'
+import RiderPackageActions from '../components/RiderPackageActions'
 
 const STATUS_COLORS = {
   completed: 'badge-success', cancelled: 'badge-danger',
   in_progress: 'badge-primary', assigned: 'badge-warning',
   awaiting_dispatch: 'badge-neutral', created: 'badge-neutral', processing: 'badge-neutral',
+  awaiting_collection: 'badge-warning', at_hub: 'badge-primary', in_slot: 'badge-primary',
 }
 
 const OUTCOME_COLORS = {
@@ -81,14 +83,17 @@ function ManualAssignModal({ orderId, pickupLat, pickupLng, onClose, onSuccess }
   const [riderId, setRiderId] = useState('')
   const [reason, setReason] = useState('')
 
-  const { data: ridersData } = useQuery({
-    queryKey: ['riders-idle'],
+  const { data: ridersData, isFetching } = useQuery({
+    queryKey: ['riders-available-live'],
     queryFn: () => api.get('/admin/users?role=rider').then(r => r.data.data),
+    staleTime: 0,
+    refetchOnMount: 'always',
+    refetchInterval: 15_000,
   })
 
   const rawRiders = (ridersData?.data ?? ridersData ?? []).filter(r => {
     const p = r.rider_profile
-    return p?.is_online && p?.status === 'idle' && p?.admin_approved
+    return p?.admin_approved && p?.is_online && (p?.status === 'idle' || p?.status === 'online')
   })
 
   // Sort by distance from pickup if coordinates available
@@ -166,7 +171,8 @@ function ManualAssignModal({ orderId, pickupLat, pickupLng, onClose, onSuccess }
               }
             })}
           />
-          {riders.length === 0 && <p className="text-sm text-muted" style={{ marginTop: 6 }}>No idle riders online right now.</p>}
+          {isFetching && riders.length === 0 && <p className="text-sm text-muted" style={{ marginTop: 6 }}>Loading available riders…</p>}
+          {!isFetching && riders.length === 0 && <p className="text-sm text-muted" style={{ marginTop: 6 }}>No idle riders online right now.</p>}
         </div>
 
         {selectedRider && (
@@ -180,13 +186,19 @@ function ManualAssignModal({ orderId, pickupLat, pickupLng, onClose, onSuccess }
           </div>
         )}
 
-        <div className="form-group">
-          <label className="form-label">Reason (required)</label>
-          <input className="form-control" value={reason} onChange={e => setReason(e.target.value)} placeholder="Why are you overriding dispatch?" />
+        <div className="form-group" style={{ marginTop: 12 }}>
+          <label className="form-label">Reason <span style={{ color: 'var(--text-secondary)', fontWeight: 400 }}>(optional)</span></label>
+          <input
+            className="form-control"
+            value={reason}
+            onChange={e => setReason(e.target.value)}
+            placeholder="e.g. Closest rider to pickup, urgent order…"
+          />
         </div>
+
         <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 8 }}>
           <button className="btn btn-secondary btn-sm" onClick={onClose}>Cancel</button>
-          <button className="btn btn-primary btn-sm" onClick={() => assign.mutate()} disabled={!riderId || !reason || assign.isPending}>
+          <button className="btn btn-primary btn-sm" onClick={() => assign.mutate()} disabled={!riderId || assign.isPending}>
             {assign.isPending ? <span className="spinner" /> : 'Assign Rider'}
           </button>
         </div>
@@ -195,12 +207,188 @@ function ManualAssignModal({ orderId, pickupLat, pickupLng, onClose, onSuccess }
   )
 }
 
+// ── CollectionAssignModal ─────────────────────────────────────────────────────
+
+function CollectionAssignModal({ orderId, onClose, onSuccess }) {
+  const [riderId, setRiderId] = useState('')
+  const [hubId,   setHubId]   = useState('')
+
+  const { data: ridersData, isFetching: fetchingRiders } = useQuery({
+    queryKey: ['riders-all'],
+    queryFn: () => api.get('/admin/users?role=rider').then(r => r.data.data),
+    staleTime: 0,
+  })
+
+  const { data: hubsData } = useQuery({
+    queryKey: ['hubs'],
+    queryFn: () => api.get('/admin/hubs').then(r => r.data.data),
+  })
+
+  const riders = (ridersData?.data ?? ridersData ?? []).filter(r => r.rider_profile?.admin_approved)
+  const hubs   = (hubsData ?? []).filter(h => h.is_active)
+
+  const assign = useMutation({
+    mutationFn: () => api.patch(`/admin/orders/${orderId}/assign-collection`, {
+      rider_id: Number(riderId),
+      hub_id:   Number(hubId),
+    }),
+    onSuccess: () => { toast.success('Collection rider assigned'); onSuccess() },
+    onError: (err) => toast.error(err.response?.data?.message ?? 'Failed'),
+  })
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 16 }}>
+      <div className="card" style={{ width: '100%', maxWidth: 480, margin: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+          <Warehouse size={20} color="var(--primary)" />
+          <h3 style={{ margin: 0 }}>Assign Collection Rider</h3>
+          <button className="btn btn-ghost btn-sm" style={{ marginLeft: 'auto' }} onClick={onClose}><X size={16} /></button>
+        </div>
+
+        <p className="text-muted text-sm" style={{ marginBottom: 16 }}>
+          This converts the order to hub-and-spoke mode. A collection rider will pick up the packages and bring them to the selected hub for consolidation.
+        </p>
+
+        <div className="form-group">
+          <label className="form-label">Hub *</label>
+          <Select
+            value={hubId}
+            onChange={e => setHubId(e.target.value)}
+            placeholder="— select hub —"
+            options={hubs.map(h => ({ value: String(h.id), label: `${h.name} · ${h.address}` }))}
+          />
+        </div>
+
+        <div className="form-group" style={{ marginTop: 12 }}>
+          <label className="form-label">Collection Rider *</label>
+          <Select
+            value={riderId}
+            onChange={e => setRiderId(e.target.value)}
+            placeholder="— select rider —"
+            options={riders.map(r => ({
+              value: String(r.id),
+              label: `${r.name} · ${r.rider_profile?.vehicle_type ?? ''} · ${r.rider_profile?.is_online ? '🟢 Online' : '⚫ Offline'}`,
+            }))}
+          />
+          {fetchingRiders && <p className="text-sm text-muted" style={{ marginTop: 6 }}>Loading riders…</p>}
+        </div>
+
+        <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 16 }}>
+          <button className="btn btn-secondary btn-sm" onClick={onClose}>Cancel</button>
+          <button
+            className="btn btn-primary btn-sm"
+            onClick={() => assign.mutate()}
+            disabled={!riderId || !hubId || assign.isPending}
+          >
+            {assign.isPending ? <span className="spinner" /> : 'Assign Collection Rider'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ── HubSpokeInfo ──────────────────────────────────────────────────────────────
+
+const HUB_SPOKE_STEPS = [
+  { status: ['awaiting_collection'],  label: 'Awaiting collection',     icon: Truck },
+  { status: ['at_hub'],               label: 'Arrived at hub',          icon: Warehouse },
+  { status: ['in_slot'],              label: 'In dispatch slot',         icon: CalendarClock },
+  { status: ['assigned','in_progress','completed'], label: 'Out for delivery', icon: Truck },
+]
+
+function HubSpokeInfo({ order }) {
+  if (order.fulfillment_type !== 'hub_spoke') return null
+
+  const currentStepIdx = HUB_SPOKE_STEPS.findIndex(s => s.status.includes(order.status))
+
+  return (
+    <div className="card">
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+        <Warehouse size={16} color="var(--primary)" />
+        <h3 style={{ margin: 0, fontSize: 15 }}>Hub & Spoke Consolidation</h3>
+      </div>
+
+      {/* Progress steps */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 0, marginBottom: 16 }}>
+        {HUB_SPOKE_STEPS.map((step, i) => {
+          const done    = i <  currentStepIdx
+          const active  = i === currentStepIdx
+          const pending = i >  currentStepIdx
+          const Icon    = step.icon
+          return (
+            <div key={i} style={{ display: 'flex', alignItems: 'center', flex: 1 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1 }}>
+                <div style={{
+                  width: 30, height: 30, borderRadius: '50%',
+                  background: done ? 'var(--success)' : active ? 'var(--primary)' : 'var(--surface-muted)',
+                  border: `2px solid ${done ? 'var(--success)' : active ? 'var(--primary)' : 'var(--border)'}`,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 6,
+                }}>
+                  <Icon size={13} color={done || active ? '#fff' : 'var(--text-secondary)'} />
+                </div>
+                <div style={{ fontSize: 10, textAlign: 'center', color: active ? 'var(--primary)' : done ? 'var(--success)' : 'var(--text-secondary)', fontWeight: active ? 600 : 400, lineHeight: 1.3 }}>
+                  {step.label}
+                </div>
+              </div>
+              {i < HUB_SPOKE_STEPS.length - 1 && (
+                <div style={{ height: 2, width: 24, background: done ? 'var(--success)' : 'var(--border)', flexShrink: 0, marginBottom: 22 }} />
+              )}
+            </div>
+          )
+        })}
+      </div>
+
+      {/* Details */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10, fontSize: 13 }}>
+        {order.hub && (
+          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+            <span style={{ color: 'var(--text-secondary)' }}>Hub</span>
+            <span style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
+              <Warehouse size={12} /> {order.hub.name}
+            </span>
+          </div>
+        )}
+        {order.collection_rider && (
+          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+            <span style={{ color: 'var(--text-secondary)' }}>Collection Rider</span>
+            <span style={{ fontWeight: 600 }}>{order.collection_rider.name}</span>
+          </div>
+        )}
+        {order.hub_arrived_at && (
+          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+            <span style={{ color: 'var(--text-secondary)' }}>Hub Arrived</span>
+            <span>{new Date(order.hub_arrived_at).toLocaleString()}</span>
+          </div>
+        )}
+        {order.slot && (
+          <>
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <span style={{ color: 'var(--text-secondary)' }}>Dispatch Slot</span>
+              <span style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
+                <CalendarClock size={12} /> {order.slot.name}
+              </span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <span style={{ color: 'var(--text-secondary)' }}>Scheduled Dispatch</span>
+              <span>{new Date(order.slot.scheduled_at).toLocaleString()}</span>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ── Page ──────────────────────────────────────────────────────────────────────
+
 export default function OrderDetailPage() {
   const { id } = useParams()
   const { isAdmin, isVendor, isRider } = useAuthStore()
   const qc = useQueryClient()
-  const [showCancel, setShowCancel] = useState(false)
-  const [showAssign, setShowAssign] = useState(false)
+  const [showCancel,     setShowCancel]     = useState(false)
+  const [showAssign,     setShowAssign]     = useState(false)
+  const [showCollection, setShowCollection] = useState(false)
 
   const { data: order, isLoading } = useQuery({
     queryKey: ['order', id],
@@ -228,13 +416,50 @@ export default function OrderDetailPage() {
     onError: (err) => toast.error(err.response?.data?.message ?? 'Dispatch failed'),
   })
 
+  const redispatchMutation = useMutation({
+    mutationFn: () => api.post(`/orders/${id}/redispatch`),
+    onSuccess: () => { toast.success('Order redispatched successfully'); qc.invalidateQueries(['order', id]) },
+    onError: (err) => toast.error(err.response?.data?.error ?? 'Redispatch failed'),
+  })
+
+  const markHubMutation = useMutation({
+    mutationFn: () => api.patch(`/admin/orders/${id}/mark-hub-arrived`),
+    onSuccess: () => { toast.success('Order marked as arrived at hub'); qc.invalidateQueries(['order', id]) },
+    onError: (err) => toast.error(err.response?.data?.error ?? 'Failed'),
+  })
+
+  const [printingWaybill, setPrintingWaybill] = useState(false)
+  const printWaybill = async () => {
+    setPrintingWaybill(true)
+    try {
+      const token = localStorage.getItem('sendtrack_token')
+      const base  = (import.meta.env.VITE_API_URL ?? 'http://localhost:8000') + '/api'
+      const res   = await fetch(`${base}/orders/${id}/waybill`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (!res.ok) throw new Error()
+      const blob = await res.blob()
+      const url  = URL.createObjectURL(blob)
+      window.open(url, '_blank')
+      setTimeout(() => URL.revokeObjectURL(url), 10000)
+    } catch {
+      toast.error('Failed to generate waybill')
+    } finally {
+      setPrintingWaybill(false)
+    }
+  }
+
   if (isLoading) return <div style={{ display: 'flex', justifyContent: 'center', padding: 64 }}><span className="spinner" /></div>
   if (!order) return <p className="text-muted">Order not found.</p>
 
   const rider = isRider()
-  const canCancel = !rider && ['created', 'awaiting_dispatch', 'processing'].includes(order.status)
+  const canCancel = !rider && ['created', 'awaiting_dispatch', 'processing', 'awaiting_collection', 'at_hub', 'in_slot'].includes(order.status)
   const canDispatch = order.status === 'awaiting_dispatch'
   const isVendorRequestMode = isVendor?.() && order.dispatch_mode === 'request' && canDispatch
+  const canRedispatch = !rider && (order.packages ?? []).some(p => p.status === 'returned_to_sender')
+  // Hub-spoke admin actions
+  const canAssignCollection = isAdmin() && ['processing', 'awaiting_dispatch', 'created'].includes(order.status)
+  const canMarkHubArrived   = isAdmin() && order.status === 'awaiting_collection'
 
   const hasMap = order.pickup_lat && order.pickup_lng && order.dropoff_lat && order.dropoff_lng
   const mapMarkers = hasMap ? [
@@ -259,7 +484,12 @@ export default function OrderDetailPage() {
             </div>
             <h1 className="page-title" style={{ margin: 0 }}>Order #{order.id}</h1>
           </div>
-          <StatusBadge status={order.status} />
+          <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+            <StatusBadge status={order.status} />
+            <button className="btn btn-secondary btn-sm" onClick={printWaybill} disabled={printingWaybill}>
+              <Printer size={14} /> {printingWaybill ? 'Generating…' : 'Waybill'}
+            </button>
+          </div>
         </div>
 
         <div className="detail-grid">
@@ -312,7 +542,7 @@ export default function OrderDetailPage() {
                     <span>Weight: <strong style={{ color: 'var(--text-primary)' }}>{pkg.weight_kg} kg</strong></span>
                   </div>
                   <div style={{ display: 'flex', gap: 12, marginTop: 6, fontSize: 12, color: 'var(--text-secondary)' }}>
-                    {pkg.is_fragile && <span style={{ color: 'var(--warning)', fontWeight: 600 }}>⚠ Fragile</span>}
+                    {pkg.is_fragile && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: 'var(--warning)', fontWeight: 600 }}><AlertTriangle size={13} /> Fragile</span>}
                     {pkg.requires_photo && <span>Photo required</span>}
                     {pkg.requires_signature && <span>Signature required</span>}
                   </div>
@@ -327,6 +557,11 @@ export default function OrderDetailPage() {
                       <Timeline events={pkg.tracking_events} />
                     </div>
                   )}
+                  <RiderPackageActions
+                    pkg={pkg}
+                    orderId={id}
+                    onDone={() => qc.invalidateQueries({ queryKey: ['order', id] })}
+                  />
                 </div>
               ))}
             </div>
@@ -411,8 +646,9 @@ export default function OrderDetailPage() {
   /* ── Vendor / Admin view ────────────────────────────────────── */
   return (
     <div>
-      {showCancel && <CancelModal onConfirm={cancelMutation.mutate} onClose={() => setShowCancel(false)} loading={cancelMutation.isPending} />}
-      {showAssign && <ManualAssignModal orderId={id} pickupLat={order?.pickup_lat} pickupLng={order?.pickup_lng} onClose={() => setShowAssign(false)} onSuccess={() => { setShowAssign(false); qc.invalidateQueries(['order', id]) }} />}
+      {showCancel     && <CancelModal onConfirm={cancelMutation.mutate} onClose={() => setShowCancel(false)} loading={cancelMutation.isPending} />}
+      {showAssign     && <ManualAssignModal orderId={id} pickupLat={order?.pickup_lat} pickupLng={order?.pickup_lng} onClose={() => setShowAssign(false)} onSuccess={() => { setShowAssign(false); qc.invalidateQueries(['order', id]) }} />}
+      {showCollection && <CollectionAssignModal orderId={id} onClose={() => setShowCollection(false)} onSuccess={() => { setShowCollection(false); qc.invalidateQueries(['order', id]) }} />}
 
       <div className="page-header">
         <div>
@@ -426,6 +662,10 @@ export default function OrderDetailPage() {
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
           <Link to={`/orders/${id}/tracking`} className="btn btn-secondary"><Map size={15} /> Track</Link>
 
+          <button className="btn btn-secondary" onClick={printWaybill} disabled={printingWaybill}>
+            <Printer size={15} /> {printingWaybill ? 'Generating…' : 'Waybill'}
+          </button>
+
           {isAdmin() && canDispatch && (
             <>
               <button className="btn btn-primary" onClick={() => dispatchMutation.mutate()} disabled={dispatchMutation.isPending}>
@@ -437,9 +677,27 @@ export default function OrderDetailPage() {
             </>
           )}
 
+          {canAssignCollection && (
+            <button className="btn btn-secondary" onClick={() => setShowCollection(true)}>
+              <Warehouse size={15} /> Assign Collection
+            </button>
+          )}
+
+          {canMarkHubArrived && (
+            <button className="btn btn-primary" onClick={() => markHubMutation.mutate()} disabled={markHubMutation.isPending}>
+              <Warehouse size={15} /> {markHubMutation.isPending ? 'Saving…' : 'Mark Arrived at Hub'}
+            </button>
+          )}
+
           {isVendorRequestMode && (
             <button className="btn btn-primary" onClick={() => dispatchMutation.mutate()} disabled={dispatchMutation.isPending}>
               <Zap size={15} /> {dispatchMutation.isPending ? 'Requesting…' : 'Request Dispatch'}
+            </button>
+          )}
+
+          {canRedispatch && (
+            <button className="btn btn-primary" onClick={() => redispatchMutation.mutate()} disabled={redispatchMutation.isPending}>
+              <Zap size={15} /> {redispatchMutation.isPending ? 'Redispatching…' : 'Redispatch'}
             </button>
           )}
 
@@ -541,6 +799,9 @@ export default function OrderDetailPage() {
 
         {/* Right */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+          {/* Hub & Spoke info — visible to all roles when relevant */}
+          <HubSpokeInfo order={order} />
+
           {order.rider && (
             <div className="card">
               <h3 style={{ marginBottom: 12 }}>Assigned Rider</h3>

@@ -1,18 +1,49 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import api from '../lib/api'
 import toast from 'react-hot-toast'
-import { Plus, Trash2, CheckCircle } from 'lucide-react'
+import { Plus, Trash2, CheckCircle, Clock, Ruler, Receipt, Info, Bookmark } from 'lucide-react'
 import AddressAutocomplete from '../components/AddressAutocomplete'
 import HereMap from '../components/HereMap'
 import { useAuthStore } from '../store/authStore'
 import Select from '../components/Select'
+import ItemPickerModal from '../components/ItemPickerModal'
+
+const HERE_API_KEY = import.meta.env.VITE_HERE_API_KEY
+
+async function estimateRoute(pickup, dropoff) {
+  const url = [
+    'https://router.hereapi.com/v8/routes',
+    `?transportMode=scooter`,
+    `&origin=${pickup.lat},${pickup.lng}`,
+    `&destination=${dropoff.lat},${dropoff.lng}`,
+    `&return=summary`,
+    `&apikey=${HERE_API_KEY}`,
+  ].join('')
+  const res = await fetch(url)
+  const data = await res.json()
+  const summary = data.routes?.[0]?.sections?.[0]?.summary
+  if (!summary) return null
+  return {
+    distanceKm: (summary.length / 1000).toFixed(1),
+    durationMin: Math.ceil(summary.duration / 60),
+  }
+}
 
 const emptyPackage = () => ({
   name: '', category: 'parcel', weight_kg: '', declared_value: '',
   is_fragile: false, requires_photo: true, requires_signature: false,
 })
+
+function FeeRow({ label, value }) {
+  return (
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: 'var(--text-secondary)', fontSize: 13 }}>
+      <span>{label}</span>
+      <span style={{ fontWeight: 500, color: 'var(--text)' }}>KES {value.toLocaleString()}</span>
+    </div>
+  )
+}
 
 export default function NewOrderPage() {
   const navigate = useNavigate()
@@ -23,11 +54,21 @@ export default function NewOrderPage() {
     pickup_address: '', pickup_lat: '', pickup_lng: '',
     dropoff_address: '', dropoff_lat: '', dropoff_lng: '',
     dispatch_mode: 'auto',
-    delivery_fee: '',
     recipient_name: '', recipient_phone: '', recipient_notes: '',
     vendor_id: '',
   })
-  const [packages, setPackages] = useState([emptyPackage()])
+  const [packages, setPackages]     = useState([emptyPackage()])
+  const [estimate, setEstimate]     = useState(null)   // { distanceKm, durationMin }
+  const [estLoading, setEstLoading] = useState(false)
+  const [fee, setFee]               = useState(null)   // computed breakdown
+  const estimateTimer = useRef(null)
+
+  // Fetch admin rate card
+  const { data: rates } = useQuery({
+    queryKey: ['pricing-rates'],
+    queryFn: () => api.get('/pricing').then(r => r.data.data),
+    staleTime: 5 * 60_000,
+  })
 
   const { data: vendors } = useQuery({
     queryKey: ['vendors-list'],
@@ -35,10 +76,97 @@ export default function NewOrderPage() {
     enabled: admin,
   })
 
+  // Re-estimate route whenever both coordinates are available
+  useEffect(() => {
+    clearTimeout(estimateTimer.current)
+    if (!order.pickup_lat || !order.pickup_lng || !order.dropoff_lat || !order.dropoff_lng) {
+      setEstimate(null)
+      setFee(null)
+      return
+    }
+    setEstLoading(true)
+    estimateTimer.current = setTimeout(async () => {
+      try {
+        const result = await estimateRoute(
+          { lat: order.pickup_lat, lng: order.pickup_lng },
+          { lat: order.dropoff_lat, lng: order.dropoff_lng },
+        )
+        setEstimate(result)
+      } catch {
+        setEstimate(null)
+      } finally {
+        setEstLoading(false)
+      }
+    }, 400)
+    return () => clearTimeout(estimateTimer.current)
+  }, [order.pickup_lat, order.pickup_lng, order.dropoff_lat, order.dropoff_lng])
+
+  // Recalculate fee whenever estimate or packages or rates change
+  useEffect(() => {
+    if (!estimate || !rates) { setFee(null); return }
+
+    const r = rates
+    const distKm      = parseFloat(estimate.distanceKm) || 0
+    const freeDist    = parseFloat(r.free_distance_km)  || 0
+    const billableKm  = Math.max(0, distKm - freeDist)
+    const distFee     = billableKm * (parseFloat(r.distance_rate_per_km) || 0)
+
+    const totalWeight = packages.reduce((s, p) => s + (parseFloat(p.weight_kg) || 0), 0)
+    const threshold   = parseFloat(r.weight_surcharge_threshold) || 0
+    const billableKg  = Math.max(0, totalWeight - threshold)
+    const weightFee   = billableKg * (parseFloat(r.weight_rate_per_kg) || 0)
+
+    // fix: DB stores booleans as strings — "false" is truthy in JS
+    const foodEnabled = r.food_priority_fee_enabled === true || r.food_priority_fee_enabled === 'true' || r.food_priority_fee_enabled === '1' || r.food_priority_fee_enabled === 1
+
+    const hasFragile = packages.some(p => p.is_fragile || p.category === 'fragile')
+    const fragileFee = hasFragile ? (parseFloat(r.fragile_surcharge) || 0) : 0
+
+    const totalValue  = packages.reduce((s, p) => s + (parseFloat(p.declared_value) || 0), 0)
+    const hvThresh    = parseFloat(r.high_value_threshold) || 0
+    const insurancePct = (parseFloat(r.high_value_insurance_percent) || 0) / 100
+    const insuranceFee = totalValue > hvThresh ? totalValue * insurancePct : 0
+
+    const hasFood = packages.some(p => p.category === 'food')
+    const foodFee = hasFood && foodEnabled ? (parseFloat(r.food_priority_fee) || 0) : 0
+
+    const baseFee = parseFloat(r.base_fee) || 0
+    const total   = baseFee + distFee + weightFee + fragileFee + insuranceFee + foodFee
+
+    setFee({
+      baseFee:      Math.round(baseFee),
+      distFee:      Math.round(distFee),
+      weightFee:    Math.round(weightFee),
+      fragileFee:   Math.round(fragileFee),
+      insuranceFee: Math.round(insuranceFee),
+      foodFee:      Math.round(foodFee),
+      total:        Math.round(total),
+      distKm,
+      totalWeight,
+      totalValue,
+      hvThresh,
+      insurancePct: parseFloat(r.high_value_insurance_percent) || 0,
+      hasFragile,
+      hasFood:      hasFood && foodEnabled,
+    })
+  }, [estimate, packages, rates])
+
+  const [pickerOpen, setPickerOpen] = useState(false)
+
   const setO = (k, v) => setOrder(o => ({ ...o, [k]: v }))
   const setP = (i, k, v) => setPackages(ps => ps.map((p, idx) => idx === i ? { ...p, [k]: v } : p))
   const addPkg = () => setPackages(ps => [...ps, emptyPackage()])
   const removePkg = (i) => setPackages(ps => ps.filter((_, idx) => idx !== i))
+  const addFromLibrary = (item) => setPackages(ps => [...ps, {
+    name:               item.name,
+    category:           item.category,
+    weight_kg:          String(item.weight_kg),
+    declared_value:     String(item.declared_value),
+    is_fragile:         item.is_fragile ?? false,
+    requires_photo:     item.requires_photo ?? true,
+    requires_signature: item.requires_signature ?? false,
+    description:        item.description ?? '',
+  }])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -51,8 +179,8 @@ export default function NewOrderPage() {
       toast.error('Select a dropoff address from the suggestions to get coordinates')
       return
     }
-    if (!order.delivery_fee || Number(order.delivery_fee) < 0) {
-      toast.error('Enter the delivery fee')
+    if (!fee) {
+      toast.error('Set both addresses to calculate the delivery fee')
       return
     }
     if (!order.recipient_name.trim()) {
@@ -70,7 +198,7 @@ export default function NewOrderPage() {
 
     setLoading(true)
     try {
-      const res = await api.post('/orders', { ...order, packages })
+      const res = await api.post('/orders', { ...order, packages, delivery_fee: fee?.total ?? 0 })
       toast.success('Order created!')
       navigate(`/orders/${res.data.data.id}`)
     } catch (err) {
@@ -132,7 +260,7 @@ export default function NewOrderPage() {
               onChange={(v) => setO('pickup_address', v)}
               onSelect={({ address, lat, lng }) => setOrder(o => ({ ...o, pickup_address: address, pickup_lat: lat ?? '', pickup_lng: lng ?? '' }))}
               required
-              placeholder="e.g. Westlands, Nairobi"
+              placeholder="Search area, estate, business…"
             />
             <AddressAutocomplete
               label="Dropoff Address"
@@ -140,11 +268,11 @@ export default function NewOrderPage() {
               onChange={(v) => setO('dropoff_address', v)}
               onSelect={({ address, lat, lng }) => setOrder(o => ({ ...o, dropoff_address: address, dropoff_lat: lat ?? '', dropoff_lng: lng ?? '' }))}
               required
-              placeholder="e.g. Kilimani, Nairobi"
+              placeholder="Search area, estate, business…"
             />
           </div>
 
-          {/* Coordinate read-outs (read-only confirmation) */}
+          {/* Coordinate confirmations */}
           {(order.pickup_lat || order.dropoff_lat) && (
             <div className="grid-2" style={{ marginTop: 4 }}>
               {order.pickup_lat && (
@@ -160,7 +288,28 @@ export default function NewOrderPage() {
             </div>
           )}
 
-          <div className="grid-2" style={{ marginTop: 8 }}>
+          {/* Route estimate */}
+          {(estLoading || estimate) && (
+            <div style={{ marginTop: 12, display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+              {estLoading ? (
+                <span style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span className="spinner" style={{ width: 12, height: 12 }} /> Calculating route…
+                </span>
+              ) : estimate ? (
+                <>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--surface-muted)', borderRadius: 8, padding: '6px 12px', fontSize: 13, fontWeight: 600 }}>
+                    <Ruler size={13} color="var(--primary)" /> {estimate.distanceKm} km
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--surface-muted)', borderRadius: 8, padding: '6px 12px', fontSize: 13, fontWeight: 600 }}>
+                    <Clock size={13} color="var(--primary)" /> ~{estimate.durationMin} min
+                  </div>
+                  <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>estimated by road</span>
+                </>
+              ) : null}
+            </div>
+          )}
+
+          <div style={{ marginTop: 8, maxWidth: 280 }}>
             <div className="form-group">
               <label className="form-label">Dispatch Mode</label>
               <Select
@@ -172,17 +321,39 @@ export default function NewOrderPage() {
                 ]}
               />
             </div>
-            <div className="form-group">
-              <label className="form-label">Delivery Fee (KES)</label>
-              <input
-                type="number" min="0" step="0.01" required
-                className="form-control"
-                placeholder="e.g. 250"
-                value={order.delivery_fee}
-                onChange={e => setO('delivery_fee', e.target.value)}
-              />
-            </div>
           </div>
+
+          {/* Fee breakdown */}
+          {(estLoading || fee) && (
+            <div style={{ marginTop: 4, background: 'var(--surface-muted)', borderRadius: 10, padding: '16px 18px', border: '1px solid var(--border)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 600, fontSize: 13, marginBottom: 12, color: 'var(--text-secondary)' }}>
+                <Receipt size={14} /> Delivery Fee Breakdown
+              </div>
+              {estLoading || !fee ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--text-secondary)' }}>
+                  <span className="spinner" style={{ width: 12, height: 12 }} /> Calculating…
+                </div>
+              ) : (
+                <>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 7, fontSize: 13 }}>
+                    <FeeRow label="Base fee" value={fee.baseFee} />
+                    <FeeRow label={`Distance (${fee.distKm} km)`} value={fee.distFee} />
+                    {fee.weightFee > 0 && <FeeRow label={`Weight surcharge (${fee.totalWeight.toFixed(1)} kg)`} value={fee.weightFee} />}
+                    {fee.fragileFee > 0 && <FeeRow label="Fragile handling" value={fee.fragileFee} />}
+                    {fee.insuranceFee > 0 && <FeeRow label={`Insurance (${fee.insurancePct}% of KES ${fee.totalValue.toLocaleString()})`} value={fee.insuranceFee} />}
+                    {fee.foodFee > 0 && <FeeRow label="Food priority" value={fee.foodFee} />}
+                  </div>
+                  <div style={{ borderTop: '1px solid var(--border)', marginTop: 10, paddingTop: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontWeight: 700, fontSize: 14 }}>Total</span>
+                    <span style={{ fontWeight: 700, fontSize: 18, color: 'var(--primary)' }}>KES {fee.total.toLocaleString()}</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 8, fontSize: 11, color: 'var(--text-secondary)' }}>
+                    <Info size={11} /> Calculated from the admin rate card. Final fee is confirmed on the server.
+                  </div>
+                </>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Recipient */}
@@ -223,9 +394,14 @@ export default function NewOrderPage() {
         <div className="card">
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
             <h3>Packages</h3>
-            <button type="button" className="btn btn-secondary btn-sm" onClick={addPkg}>
-              <Plus size={14} /> Add Package
-            </button>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button type="button" className="btn btn-secondary btn-sm" onClick={() => setPickerOpen(true)}>
+                <Bookmark size={14} /> From Library
+              </button>
+              <button type="button" className="btn btn-secondary btn-sm" onClick={addPkg}>
+                <Plus size={14} /> New
+              </button>
+            </div>
           </div>
 
           {packages.map((pkg, i) => (
@@ -278,6 +454,12 @@ export default function NewOrderPage() {
           {loading ? <span className="spinner" /> : 'Create Order'}
         </button>
       </form>
+
+      <ItemPickerModal
+        open={pickerOpen}
+        onClose={() => setPickerOpen(false)}
+        onAdd={(item) => { addFromLibrary(item); setPickerOpen(false) }}
+      />
     </div>
   )
 }

@@ -6,6 +6,7 @@ import toast from 'react-hot-toast'
 import { useAuthStore } from '../store/authStore'
 import { MapPin, Package, Weight, Clock, CheckCircle, XCircle } from 'lucide-react'
 import HereMap from './HereMap'
+import { playDispatchOffer } from '../lib/sounds'
 
 export default function DispatchOfferModal() {
   const { user, isRider } = useAuthStore()
@@ -21,6 +22,7 @@ export default function DispatchOfferModal() {
       setOffer(e)
       const secs = Math.max(0, Math.round((new Date(e.expires_at) - Date.now()) / 1000))
       setSecondsLeft(secs)
+      playDispatchOffer()
     })
     return () => echo.leaveChannel(`rider.${user.id}`)
   }, [user?.id]) // eslint-disable-line react-hooks/exhaustive-deps

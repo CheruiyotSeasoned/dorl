@@ -51,7 +51,7 @@ export default function AppDownloadBanner({ role = 'vendor' }) {
   if (!installPrompt && !isIOS()) return null
 
   const isRider = role === 'rider'
-  const appName = isRider ? 'DORL Rider' : 'DORL Vendor'
+  const appName = isRider ? 'SendTrack Rider' : 'SendTrack Vendor'
   const appDesc = isRider
     ? 'Install the app for push notifications, offline access & GPS tracking'
     : 'Install the app for instant order alerts & quick access'

@@ -2,7 +2,8 @@ import { useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import api from '../lib/api'
 import toast from 'react-hot-toast'
-import { Truck, KeyRound, Eye, EyeOff, CheckCircle } from 'lucide-react'
+import { Truck, KeyRound, CheckCircle } from 'lucide-react'
+import PasswordInput from '../components/PasswordInput'
 
 export default function ResetPasswordPage() {
   const [params] = useSearchParams()
@@ -10,7 +11,6 @@ export default function ResetPasswordPage() {
   const navigate = useNavigate()
 
   const [form, setForm] = useState({ password: '', password_confirmation: '' })
-  const [show, setShow] = useState({ password: false, confirm: false })
   const [loading, setLoading] = useState(false)
   const [done, setDone] = useState(false)
 
@@ -38,27 +38,10 @@ export default function ResetPasswordPage() {
     }
   }
 
-  const pwInput = (field, label, showKey) => (
+  const pwInput = (field, label) => (
     <div className="form-group">
       <label className="form-label">{label}</label>
-      <div style={{ position: 'relative' }}>
-        <input
-          type={show[showKey] ? 'text' : 'password'}
-          className="form-control" required
-          value={form[field]}
-          onChange={set(field)}
-          placeholder="••••••••"
-          autoComplete={field === 'password' ? 'new-password' : 'new-password'}
-          style={{ paddingRight: 44 }}
-        />
-        <button
-          type="button"
-          onClick={() => setShow(s => ({ ...s, [showKey]: !s[showKey] }))}
-          style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)', padding: 0, display: 'flex' }}
-        >
-          {show[showKey] ? <EyeOff size={16} /> : <Eye size={16} />}
-        </button>
-      </div>
+      <PasswordInput required value={form[field]} onChange={set(field)} placeholder="••••••••" autoComplete="new-password" />
     </div>
   )
 
@@ -110,8 +93,8 @@ export default function ResetPasswordPage() {
               </div>
             ) : (
               <form onSubmit={handleSubmit}>
-                {pwInput('password', 'New password', 'password')}
-                {pwInput('password_confirmation', 'Confirm new password', 'confirm')}
+                {pwInput('password', 'New password')}
+                {pwInput('password_confirmation', 'Confirm new password')}
 
                 <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 16 }}>
                   Must be at least 8 characters

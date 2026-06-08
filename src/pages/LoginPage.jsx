@@ -3,11 +3,12 @@ import { useNavigate, Link } from 'react-router-dom'
 import { useAuthStore } from '../store/authStore'
 import toast from 'react-hot-toast'
 import { Truck, Package, MapPin, Shield, ArrowRight } from 'lucide-react'
+import PasswordInput from '../components/PasswordInput'
 
 export default function LoginPage() {
   const [form, setForm] = useState({ email: '', password: '' })
   const [loading, setLoading] = useState(false)
-  const { login } = useAuthStore()
+  const { login, needsOnboarding, onboardingPending, onboardingRejected } = useAuthStore()
   const navigate = useNavigate()
 
   const handleSubmit = async (e) => {
@@ -16,7 +17,13 @@ export default function LoginPage() {
     try {
       const user = await login(form.email, form.password)
       toast.success(`Welcome back, ${user.name}!`)
-      navigate('/dashboard')
+      // Send non-admin users to onboarding if their KYC is not yet approved
+      const kyc = user.role === 'rider' ? user.rider_profile?.kyc_status : user.vendor_kyc?.kyc_status
+      if (user.role !== 'admin' && (!kyc || kyc === 'pending' || kyc === 'submitted' || kyc === 'rejected')) {
+        navigate('/onboarding')
+      } else {
+        navigate('/dashboard')
+      }
     } catch (err) {
       toast.error(err.response?.data?.error || 'Login failed')
     } finally {
@@ -57,7 +64,7 @@ export default function LoginPage() {
               <div style={{ width: 40, height: 40, background: '#FF5E14', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <Truck size={20} color="#fff" />
               </div>
-              <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 18, color: '#fff' }}>DORL Delivery</span>
+              <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 18, color: '#fff' }}>SendTrack</span>
             </div>
 
             <div style={{ marginBottom: 12 }}>
@@ -126,8 +133,8 @@ export default function LoginPage() {
                     <label className="form-label" style={{ margin: 0 }}>Password</label>
                     <Link to="/forgot-password" style={{ fontSize: 12, color: 'var(--primary)' }}>Forgot password?</Link>
                   </div>
-                  <input
-                    type="password" className="form-control" required
+                  <PasswordInput
+                    required
                     value={form.password} onChange={e => setForm({ ...form, password: e.target.value })}
                     placeholder="••••••••"
                     autoComplete="current-password"

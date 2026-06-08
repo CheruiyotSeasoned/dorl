@@ -10,14 +10,14 @@ self.addEventListener('push', (event) => {
   if (!event.data) return
 
   let payload
-  try { payload = event.data.json() } catch { payload = { title: 'DORL', body: event.data.text() } }
+  try { payload = event.data.json() } catch { payload = { title: 'SendTrack', body: event.data.text() } }
 
-  const title   = payload.title ?? 'DORL Delivery'
+  const title   = payload.title ?? 'SendTrack'
   const options = {
     body:    payload.body ?? '',
     icon:    '/logo.png',
     badge:   '/logo.png',
-    tag:     payload.tag ?? 'dorl-notification',
+    tag:     payload.tag ?? 'sendtrack-notification',
     data:    payload.data ?? {},
     vibrate: [200, 100, 200],
     actions: payload.actions ?? [],

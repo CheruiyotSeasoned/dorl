@@ -8,9 +8,14 @@ const api = axios.create({
 const safeGet = (k) => { try { return localStorage.getItem(k) } catch { return null } }
 const safeRemove = (k) => { try { localStorage.removeItem(k) } catch {} }
 
+const PUBLIC_ENDPOINTS = ['/auth/login', '/auth/register', '/auth/forgot-password', '/auth/reset-password', '/auth/verify-email', '/auth/resend-verification']
+
 api.interceptors.request.use((config) => {
-  const token = safeGet('dorl_token')
-  if (token) config.headers.Authorization = `Bearer ${token}`
+  const isPublic = PUBLIC_ENDPOINTS.some(path => config.url?.includes(path))
+  if (!isPublic) {
+    const token = safeGet('sendtrack_token')
+    if (token) config.headers.Authorization = `Bearer ${token}`
+  }
   return config
 })
 
@@ -18,7 +23,7 @@ api.interceptors.response.use(
   (res) => res,
   (err) => {
     if (err.response?.status === 401) {
-      safeRemove('dorl_token')
+      safeRemove('sendtrack_token')
       window.location.href = '/login'
     }
     return Promise.reject(err)
