@@ -2,8 +2,9 @@ import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuthStore } from '../store/authStore'
 import toast from 'react-hot-toast'
-import { Truck, Package, MapPin, Shield, ArrowRight } from 'lucide-react'
+import { Package, MapPin, Shield, ArrowRight } from 'lucide-react'
 import PasswordInput from '../components/PasswordInput'
+import SiteLogo from '../components/SiteLogo'
 
 export default function LoginPage() {
   const [form, setForm] = useState({ email: '', password: '' })
@@ -65,11 +66,8 @@ export default function LoginPage() {
         <div className="login-brand">
           {/* Logo */}
           <div style={{ position: 'relative', zIndex: 1 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 48 }}>
-              <div style={{ width: 40, height: 40, background: '#FF5E14', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Truck size={20} color="#fff" />
-              </div>
-              <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 18, color: '#fff' }}>SendTrack</span>
+            <div style={{ marginBottom: 48 }}>
+              <SiteLogo height={40} color="#fff" />
             </div>
 
             <div style={{ marginBottom: 12 }}>
@@ -115,8 +113,8 @@ export default function LoginPage() {
           <div style={{ width: '100%', maxWidth: 420 }}>
             {/* Mobile logo */}
             <div style={{ textAlign: 'center', marginBottom: 32 }}>
-              <div style={{ width: 52, height: 52, background: 'var(--primary)', borderRadius: 14, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginBottom: 12 }}>
-                <Truck size={26} color="#fff" />
+              <div style={{ display: 'inline-flex', marginBottom: 12 }}>
+                <SiteLogo height={44} />
               </div>
               <h2 style={{ fontFamily: 'var(--font-display)' }}>Sign in</h2>
               <p className="text-muted text-sm" style={{ marginTop: 4 }}>Welcome back — enter your details below</p>

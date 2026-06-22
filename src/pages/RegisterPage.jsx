@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { Truck, Package, Bike, Car, CheckCircle, Zap, FileText } from 'lucide-react'
 import PasswordInput from '../components/PasswordInput'
+import SiteLogo from '../components/SiteLogo'
 import api from '../lib/api'
 import { useAuthStore } from '../store/authStore'
 import toast from 'react-hot-toast'
@@ -47,11 +48,8 @@ export default function RegisterPage() {
       }} className="ob-left-panel">
         <div style={{ position: 'absolute', top: -60, right: -60, width: 280, height: 280, background: 'rgba(255,94,20,0.07)', borderRadius: '50%', pointerEvents: 'none' }} />
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 64 }}>
-          <div style={{ width: 36, height: 36, background: '#FF5E14', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Truck size={18} color="#fff" />
-          </div>
-          <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 18, color: '#fff' }}>SendTrack</span>
+        <div style={{ marginBottom: 64 }}>
+          <SiteLogo height={36} color="#fff" />
         </div>
 
         <div style={{ flex: 1 }}>

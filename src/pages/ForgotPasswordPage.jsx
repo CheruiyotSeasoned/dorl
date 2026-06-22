@@ -2,7 +2,8 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import api from '../lib/api'
 import toast from 'react-hot-toast'
-import { Truck, Mail, ArrowRight, CheckCircle } from 'lucide-react'
+import { Mail, ArrowRight, CheckCircle } from 'lucide-react'
+import SiteLogo from '../components/SiteLogo'
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('')
@@ -32,8 +33,8 @@ export default function ForgotPasswordPage() {
         <div style={{ width: '100%', maxWidth: 440 }}>
           {/* Logo */}
           <div style={{ textAlign: 'center', marginBottom: 32 }}>
-            <div style={{ width: 52, height: 52, background: 'var(--primary)', borderRadius: 14, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginBottom: 12 }}>
-              <Truck size={26} color="#fff" />
+            <div style={{ display: 'inline-flex', marginBottom: 12 }}>
+              <SiteLogo height={44} />
             </div>
             <h2 style={{ fontFamily: 'var(--font-display)' }}>Forgot password?</h2>
             <p className="text-muted text-sm" style={{ marginTop: 4 }}>

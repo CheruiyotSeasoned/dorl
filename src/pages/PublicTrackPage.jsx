@@ -3,6 +3,7 @@ import { useSearchParams, Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { MapPin, Clock, Package, CheckCircle2, Truck, Search, AlertCircle, Navigation, Phone, Star } from 'lucide-react'
 import HereMap from '../components/HereMap'
+import PublicLayout from '../components/PublicLayout'
 import api from '../lib/api'
 
 async function fetchTrack(code) {
@@ -93,19 +94,10 @@ export default function PublicTrackPage() {
     : null
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f8fafc', fontFamily: 'inherit' }}>
-      {/* Nav */}
-      <div style={{ background: '#fff', borderBottom: '1px solid #e5e7eb', padding: '14px 24px', display: 'flex', alignItems: 'center', gap: 12 }}>
-        <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none' }}>
-          <div style={{ width: 32, height: 32, borderRadius: 8, background: '#FF5E14', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Package size={16} color="#fff" />
-          </div>
-          <span style={{ fontWeight: 800, fontSize: 18, color: '#111827' }}>SendTrack</span>
-        </Link>
-        <span style={{ color: '#9ca3af', fontSize: 13, marginLeft: 4 }}>/ Track your order</span>
-      </div>
-
+    <PublicLayout>
+    <div style={{ background: '#f8fafc', fontFamily: 'inherit' }}>
       <div style={{ maxWidth: 720, margin: '0 auto', padding: '32px 16px' }}>
+        <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 24, marginTop: 0 }}>Track your order</h1>
         {/* Search bar */}
         <form onSubmit={handleSearch} style={{ display: 'flex', gap: 10, marginBottom: 32 }}>
           <div style={{ position: 'relative', flex: 1 }}>
@@ -286,5 +278,6 @@ export default function PublicTrackPage() {
 
       <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
     </div>
+    </PublicLayout>
   )
 }

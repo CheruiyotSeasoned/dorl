@@ -1,4 +1,5 @@
-import { Truck } from 'lucide-react'
+import { useQuery } from '@tanstack/react-query'
+import axios from 'axios'
 
 const API = (import.meta.env.VITE_API_URL ?? 'http://localhost:8000') + '/api'
 
@@ -9,22 +10,36 @@ export function buildLogoUrl(path) {
   return base + path
 }
 
-export default function SiteLogo({ logoUrl, siteName = 'SendTrack Ltd', height = 36 }) {
-  if (logoUrl) {
+/**
+ * Brand logo — always the admin-controlled logo (Settings → Branding).
+ * If a logoUrl is passed it's used directly; otherwise we fetch the public
+ * branding from /api/landing. No generic placeholder is ever shown — while the
+ * logo loads we fall back to the site name text only.
+ */
+export default function SiteLogo({ logoUrl, siteName, height = 36, color }) {
+  const { data } = useQuery({
+    queryKey: ['landing-content'],
+    queryFn: () => axios.get(`${API}/landing`).then(r => r.data.data),
+    staleTime: 10 * 60 * 1000,
+    enabled: !logoUrl,           // only fetch when a logo wasn't supplied
+  })
+
+  const url  = logoUrl ?? data?.branding?.logo_url
+  const name = siteName ?? data?.landing_seo?.site_name ?? 'SendTrack'
+
+  if (url) {
     return (
       <img
-        src={buildLogoUrl(logoUrl)}
-        alt={siteName}
+        src={buildLogoUrl(url)}
+        alt={name}
         style={{ height, width: 'auto', objectFit: 'contain', display: 'block' }}
       />
     )
   }
+
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-      <div style={{ width: height, height, background: '#FF5E14', borderRadius: Math.round(height * 0.25), display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-        <Truck size={Math.round(height * 0.5)} color="#fff" />
-      </div>
-      <span style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", fontWeight: 700, fontSize: Math.round(height * 0.5), color: 'inherit' }}>{siteName}</span>
-    </div>
+    <span style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", fontWeight: 800, fontSize: Math.round(height * 0.52), color: color ?? 'inherit', whiteSpace: 'nowrap' }}>
+      {name}
+    </span>
   )
 }

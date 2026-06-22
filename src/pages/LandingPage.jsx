@@ -63,7 +63,7 @@ function useReveal(threshold = 0.08) {
 }
 
 // ── Navbar ────────────────────────────────────────────────────────────────────
-function Navbar({ logoUrl, siteName }) {
+export function Navbar({ logoUrl, siteName }) {
   const [open, setOpen] = useState(false)
   return (
     <header style={{ position: 'sticky', top: 0, zIndex: 100, background: '#fff', borderBottom: '1px solid #E5E5E5', boxShadow: '0 1px 0 rgba(0,0,0,0.04)' }}>
@@ -73,7 +73,7 @@ function Navbar({ logoUrl, siteName }) {
         </Link>
         <nav style={{ display: 'flex', gap: 32, marginLeft: 48, alignItems: 'center' }} className="lp-desktop-nav">
           {['Home','About','Services','How It Works','Track','FAQ','Contact'].map(l => (
-            <a key={l} href={`#${l.toLowerCase().replace(/\s+/g,'-')}`}
+            <a key={l} href={`/#${l.toLowerCase().replace(/\s+/g,'-')}`}
               style={{ fontSize: 14, fontWeight: 500, color: '#6B6B6B', textDecoration: 'none', transition: 'color 0.15s' }}
               onMouseEnter={e => e.target.style.color='#FF5E14'}
               onMouseLeave={e => e.target.style.color='#6B6B6B'}>{l}</a>
@@ -95,7 +95,7 @@ function Navbar({ logoUrl, siteName }) {
       {open && (
         <div style={{ background: '#fff', borderTop: '1px solid #E5E5E5', padding: '12px 24px 20px' }}>
           {['Home','About','Services','How It Works','Track','FAQ','Contact'].map(l => (
-            <a key={l} href={`#${l.toLowerCase().replace(/\s+/g,'-')}`} onClick={() => setOpen(false)}
+            <a key={l} href={`/#${l.toLowerCase().replace(/\s+/g,'-')}`} onClick={() => setOpen(false)}
               style={{ display: 'block', padding: '12px 0', fontSize: 15, fontWeight: 500, color: '#0D0D0D', textDecoration: 'none', borderBottom: '1px solid #F7F7F7' }}>{l}</a>
           ))}
           <Link to="/book" onClick={() => setOpen(false)}
@@ -1023,7 +1023,7 @@ function FooterLink({ href, children }) {
   return <a href={href ?? '#'} style={style} onMouseEnter={enter} onMouseLeave={leave}>{children}</a>
 }
 
-function Footer({ footer = {}, contact = {}, seo = {}, branding = {} }) {
+export function Footer({ footer = {}, contact = {}, seo = {}, branding = {} }) {
   const tagline     = footer.company_tagline  ?? 'A real-time last-mile logistics platform. Package-level intelligence, deterministic dispatching, and transparency-driven delivery trust.'
   const navLinks    = footer.nav_links        ?? []
   const solLinks    = footer.solutions_links  ?? []

@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import toast from 'react-hot-toast'
-import { Truck, ArrowLeft, ArrowRight, CheckCircle2, Loader2, Package, Phone } from 'lucide-react'
+import { ArrowLeft, ArrowRight, CheckCircle2, Loader2, Phone } from 'lucide-react'
 import api from '../lib/api'
+import PublicLayout from '../components/PublicLayout'
 
 const empty = {
-  vendor_name: '', vendor_phone: '+254',
+  vendor_name: '', vendor_phone: '+254', vendor_email: '',
   customer_name: '', customer_phone: '+254', customer_location: '',
   pickup_station_id: '',
   package_type: '', weight_range: '', package_value: '',
@@ -94,7 +95,8 @@ export default function BookParcelPage() {
 
   // ── Render ──────────────────────────────────────────────────────────────────
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--surface-muted, #f6f7f9)' }}>
+    <PublicLayout>
+    <div style={{ background: 'var(--surface-muted, #f6f7f9)' }}>
       <style>{`
         .bk-wrap { max-width: 640px; margin: 0 auto; padding: 24px 16px 64px; }
         .bk-card { background: var(--surface, #fff); border: 1px solid var(--border, #e5e7eb); border-radius: 16px; padding: 24px; box-shadow: 0 4px 24px rgba(0,0,0,0.05); }
@@ -109,20 +111,8 @@ export default function BookParcelPage() {
         .bk-chk { display:flex; align-items:center; gap:8px; font-size:14px; cursor:pointer; }
       `}</style>
 
-      {/* Header */}
-      <div style={{ background: '#0D0D0D', padding: '16px 0' }}>
-        <div style={{ maxWidth: 640, margin: '0 auto', padding: '0 16px', display: 'flex', alignItems: 'center', gap: 10 }}>
-          <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none' }}>
-            <div style={{ width: 34, height: 34, background: '#FF5E14', borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Truck size={18} color="#fff" />
-            </div>
-            <span style={{ color: '#fff', fontWeight: 700, fontFamily: 'var(--font-display)' }}>SendTrack</span>
-          </Link>
-          <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, marginLeft: 'auto' }}>Book a Parcel</span>
-        </div>
-      </div>
-
       <div className="bk-wrap">
+        <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 24, textAlign: 'center', margin: '8px 0 0' }}>Book a Parcel</h1>
         <div className="bk-steps">
           {[1, 2, 3].map(n => <div key={n} className={`bk-dot ${step >= n ? 'on' : ''}`} />)}
         </div>
@@ -137,6 +127,7 @@ export default function BookParcelPage() {
                 <Field label="Vendor / Sender Name *" value={form.vendor_name} onChange={v => set('vendor_name', v)} placeholder="Enter vendor name" />
                 <Field label="Sender Phone *" value={form.vendor_phone} onChange={v => set('vendor_phone', v)} placeholder="+254…" hint="Include country code (e.g., +254)" />
               </div>
+              <Field label="Sender Email" type="email" value={form.vendor_email} onChange={v => set('vendor_email', v)} placeholder="name@email.com" hint="For your booking confirmation & receipt" />
 
               <div className="bk-section-title">Customer Information</div>
               <div className="bk-row">
@@ -282,6 +273,7 @@ export default function BookParcelPage() {
 
       <style>{`.spin { animation: bkspin 1s linear infinite } @keyframes bkspin { to { transform: rotate(360deg) } }`}</style>
     </div>
+    </PublicLayout>
   )
 }
 

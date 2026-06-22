@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams, Link } from 'react-router-dom'
-import { Truck, CheckCircle, XCircle, Loader, ArrowRight, RefreshCw } from 'lucide-react'
+import { CheckCircle, XCircle, Loader, ArrowRight, RefreshCw } from 'lucide-react'
+import SiteLogo from '../components/SiteLogo'
 import api from '../lib/api'
 
 export default function VerifyEmailPage() {
@@ -45,11 +46,8 @@ export default function VerifyEmailPage() {
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 24, background: '#F7F7F7' }}>
       {/* Logo */}
-      <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none', marginBottom: 40 }}>
-        <div style={{ width: 38, height: 38, background: '#FF5E14', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <Truck size={19} color="#fff" />
-        </div>
-        <span style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", fontWeight: 700, fontSize: 18, color: '#0D0D0D' }}>SendTrack</span>
+      <Link to="/" style={{ display: 'inline-flex', textDecoration: 'none', marginBottom: 40 }}>
+        <SiteLogo height={40} />
       </Link>
 
       <div style={{ background: '#fff', border: '1px solid #E5E5E5', borderRadius: 16, padding: '40px 36px', maxWidth: 440, width: '100%', textAlign: 'center', boxShadow: '0 4px 24px rgba(0,0,0,0.06)' }}>
