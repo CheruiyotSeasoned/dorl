@@ -832,7 +832,7 @@ function Contact({ c = {} }) {
   const info = [
     { icon: MapPin, label: 'Address',      value: c.address ?? 'Ronald Ngala Road, Nairobi' },
     { icon: Phone,  label: 'Phone',        value: c.phone   ?? '+254 746 556 931' },
-    { icon: Mail,   label: 'Email',        value: c.email   ?? 'info@dorl.co.ke' },
+    { icon: Mail,   label: 'Email',        value: c.email   ?? 'info@sendtrack.co.ke' },
     { icon: Clock,  label: 'Office Hours', value: c.hours   ?? 'Mon – Sat: 8am to 6pm' },
   ]
 
@@ -1044,7 +1044,7 @@ function Footer({ footer = {}, contact = {}, seo = {}, branding = {} }) {
             <div style={{ display: 'flex', gap: 8, marginBottom: socials.length ? 16 : 0 }}>
               {[
                 { Icon: Phone, href: `tel:${contact.phone ?? '+254746556931'}` },
-                { Icon: Mail,  href: `mailto:${contact.email ?? 'info@dorl.co.ke'}` },
+                { Icon: Mail,  href: `mailto:${contact.email ?? 'info@sendtrack.co.ke'}` },
                 { Icon: MapPin,href: '#contact' },
               ].map(({ Icon, href }, i) => (
                 <a key={i} href={href} style={{ width: 36, height: 36, background: 'rgba(255,255,255,0.06)', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background 0.15s', textDecoration: 'none' }}

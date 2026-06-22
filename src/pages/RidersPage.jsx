@@ -86,8 +86,9 @@ function RiderProfileDrawer({ riderId, onClose }) {
 
   const profile = r?.rider_profile
 
+  // KYC endpoints key off the RiderProfile id (profile.id), NOT the user id (riderId)
   const approve = useMutation({
-    mutationFn: () => api.patch(`/admin/kyc/riders/${riderId}/approve`),
+    mutationFn: () => api.patch(`/admin/kyc/riders/${profile.id}/approve`),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['riders'] })
       qc.invalidateQueries({ queryKey: ['rider-detail', riderId] })
@@ -98,7 +99,7 @@ function RiderProfileDrawer({ riderId, onClose }) {
   })
 
   const reject = useMutation({
-    mutationFn: () => api.patch(`/admin/kyc/riders/${riderId}/reject`, { reason: rejectReason }),
+    mutationFn: () => api.patch(`/admin/kyc/riders/${profile.id}/reject`, { reason: rejectReason }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['riders'] })
       qc.invalidateQueries({ queryKey: ['rider-detail', riderId] })

@@ -6,6 +6,7 @@ import { ArrowLeft, Package, MapPin, QrCode, CheckCircle, Truck, Printer, Clock,
 import api from '../lib/api'
 import toast from 'react-hot-toast'
 import { useAuthStore } from '../store/authStore'
+import AddressAutocomplete from '../components/AddressAutocomplete'
 
 const STATUS_COLORS = {
   pending: '#6b7280', at_warehouse: '#8b5cf6', sorted: '#3b82f6',
@@ -244,53 +245,42 @@ function ItemRow({ item, stations, onReceive, onConvertToOrder, isAdmin }) {
       {/* Convert to Order inline form */}
       {showConvert && (
         <div style={{ marginTop: 14, padding: 14, background: 'var(--surface-alt, #f9fafb)', border: '1px solid var(--border)', borderRadius: 8 }}>
-          <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 10 }}>Create Delivery Order for {item.customer_name}</div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 8 }}>
-            <div style={{ gridColumn: '1 / -1' }}>
-              <label style={{ fontSize: 11, color: 'var(--text-secondary)', display: 'block', marginBottom: 3 }}>Pickup Address (warehouse / sender)</label>
-              <input
-                className="form-control"
-                style={{ fontSize: 13 }}
-                placeholder="e.g. Nairobi Warehouse, Industrial Area"
-                value={convertForm.pickup_address}
-                onChange={e => setConvertForm(f => ({ ...f, pickup_address: e.target.value }))}
-              />
-            </div>
-            <div>
-              <label style={{ fontSize: 11, color: 'var(--text-secondary)', display: 'block', marginBottom: 3 }}>Pickup Lat</label>
-              <input className="form-control" style={{ fontSize: 13 }} type="number" placeholder="-1.2921"
-                value={convertForm.pickup_lat} onChange={e => setConvertForm(f => ({ ...f, pickup_lat: e.target.value }))} />
-            </div>
-            <div>
-              <label style={{ fontSize: 11, color: 'var(--text-secondary)', display: 'block', marginBottom: 3 }}>Pickup Lng</label>
-              <input className="form-control" style={{ fontSize: 13 }} type="number" placeholder="36.8219"
-                value={convertForm.pickup_lng} onChange={e => setConvertForm(f => ({ ...f, pickup_lng: e.target.value }))} />
-            </div>
-            <div style={{ gridColumn: '1 / -1' }}>
-              <label style={{ fontSize: 11, color: 'var(--text-secondary)', display: 'block', marginBottom: 3 }}>Dropoff Address (pickup station / customer)</label>
-              <input
-                className="form-control"
-                style={{ fontSize: 13 }}
-                placeholder="Pre-filled from station if assigned"
-                value={convertForm.dropoff_address}
-                onChange={e => setConvertForm(f => ({ ...f, dropoff_address: e.target.value }))}
-              />
-            </div>
-            <div>
-              <label style={{ fontSize: 11, color: 'var(--text-secondary)', display: 'block', marginBottom: 3 }}>Dropoff Lat</label>
-              <input className="form-control" style={{ fontSize: 13 }} type="number" placeholder="optional"
-                value={convertForm.dropoff_lat} onChange={e => setConvertForm(f => ({ ...f, dropoff_lat: e.target.value }))} />
-            </div>
-            <div>
-              <label style={{ fontSize: 11, color: 'var(--text-secondary)', display: 'block', marginBottom: 3 }}>Dropoff Lng</label>
-              <input className="form-control" style={{ fontSize: 13 }} type="number" placeholder="optional"
-                value={convertForm.dropoff_lng} onChange={e => setConvertForm(f => ({ ...f, dropoff_lng: e.target.value }))} />
-            </div>
+          <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 12 }}>
+            Create Delivery Order — {item.customer_name}
           </div>
+
+          <AddressAutocomplete
+            label="Pickup Address (warehouse / sender)"
+            required
+            placeholder="Search warehouse, estate or business…"
+            value={convertForm.pickup_address}
+            onChange={v => setConvertForm(f => ({ ...f, pickup_address: v, pickup_lat: '', pickup_lng: '' }))}
+            onSelect={({ address, lat, lng }) => setConvertForm(f => ({ ...f, pickup_address: address, pickup_lat: lat ?? '', pickup_lng: lng ?? '' }))}
+          />
+          {convertForm.pickup_lat && (
+            <div style={{ fontSize: 10, color: 'var(--text-secondary)', marginTop: -8, marginBottom: 10 }}>
+              {Number(convertForm.pickup_lat).toFixed(5)}, {Number(convertForm.pickup_lng).toFixed(5)}
+            </div>
+          )}
+
+          <AddressAutocomplete
+            label="Dropoff Address (station / customer)"
+            placeholder="Search destination…"
+            value={convertForm.dropoff_address}
+            onChange={v => setConvertForm(f => ({ ...f, dropoff_address: v, dropoff_lat: '', dropoff_lng: '' }))}
+            onSelect={({ address, lat, lng }) => setConvertForm(f => ({ ...f, dropoff_address: address, dropoff_lat: lat ?? '', dropoff_lng: lng ?? '' }))}
+          />
+          {convertForm.dropoff_lat && (
+            <div style={{ fontSize: 10, color: 'var(--text-secondary)', marginTop: -8, marginBottom: 10 }}>
+              {Number(convertForm.dropoff_lat).toFixed(5)}, {Number(convertForm.dropoff_lng).toFixed(5)}
+            </div>
+          )}
+
           <button
             className="btn btn-primary btn-sm"
+            style={{ marginTop: 4 }}
             onClick={() => onConvertToOrder(item.id, convertForm)}
-            disabled={!convertForm.pickup_address || !convertForm.pickup_lat || !convertForm.pickup_lng}
+            disabled={!convertForm.pickup_lat || !convertForm.pickup_lng}
           >
             <Truck size={13} /> Confirm — Create Order
           </button>

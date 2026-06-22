@@ -25,7 +25,12 @@ export default function LoginPage() {
         navigate('/dashboard')
       }
     } catch (err) {
-      toast.error(err.response?.data?.error || 'Login failed')
+      // err.response present → server replied (e.g. wrong credentials).
+      // No response → request never reached the API (offline / DNS / stale cached build).
+      const message = err.response
+        ? (err.response.data?.error || 'Login failed')
+        : "Can't reach the server. Check your connection and try again."
+      toast.error(message)
     } finally {
       setLoading(false)
     }

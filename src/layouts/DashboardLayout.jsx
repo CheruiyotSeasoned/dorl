@@ -6,14 +6,17 @@ import {
   BarChart3, Settings, Shield, Mail, MessageSquare, LogOut, Menu,
   ClipboardList, Globe, Building2, MonitorSmartphone, Warehouse, CalendarClock,
   MapPin, Wallet, QrCode, PackageSearch, Search,
-  ShieldCheck, Activity, ChevronLeft, ChevronRight,
+  ShieldCheck, Activity, ChevronLeft, ChevronRight, ArrowLeft, ArrowRight,
 } from 'lucide-react'
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import DispatchOfferModal from '../components/DispatchOfferModal'
 import PWAInstallBanner from '../components/PWAInstallBanner'
 import VendorPushBanner from '../components/VendorPushBanner'
 import SessionsModal from '../components/SessionsModal'
 import NotificationBell from '../components/NotificationBell'
+import SiteLogo, { buildLogoUrl } from '../components/SiteLogo'
+import api from '../lib/api'
 
 // ─── Design tokens ─────────────────────────────────────────────────────────────
 const S = {
@@ -228,11 +231,34 @@ function useIsMobile() {
   return mobile
 }
 
+// True when launched as an installed PWA (no browser chrome → no back/forward buttons)
+function useIsStandalone() {
+  const check = () =>
+    window.matchMedia?.('(display-mode: standalone)').matches === true ||
+    window.navigator.standalone === true // iOS Safari
+  const [standalone, setStandalone] = useState(check)
+  useEffect(() => {
+    const mq = window.matchMedia('(display-mode: standalone)')
+    const fn = () => setStandalone(check())
+    mq.addEventListener?.('change', fn)
+    return () => mq.removeEventListener?.('change', fn)
+  }, [])
+  return standalone
+}
+
 // ─── Main layout ───────────────────────────────────────────────────────────────
 export default function DashboardLayout() {
   const { user, logout, isSuperAdmin } = useAuthStore()
   const navigate = useNavigate()
   const isMobile = useIsMobile()
+  const isStandalone = useIsStandalone()
+
+  const { data: branding } = useQuery({
+    queryKey: ['branding'],
+    queryFn: () => api.get('/branding').then(r => r.data.data),
+    staleTime: 10 * 60 * 1000,
+  })
+  const logoUrl = branding?.logo_url ? buildLogoUrl(branding.logo_url) : null
   const [sidebarOpen, setSidebarOpen]   = useState(!isMobile)
   const [collapsed, setCollapsed]       = useState(false)
   const [showSessions, setShowSessions] = useState(false)
@@ -304,36 +330,53 @@ export default function DashboardLayout() {
         {/* ── Logo row ─────────────────────────────────────────────────── */}
         <div style={{
           height: 64,
-          padding: `0 ${isExpanded ? 18 : 0}px`,
+          padding: `0 ${isExpanded ? 18 : 8}px`,
           display: 'flex',
           alignItems: 'center',
           justifyContent: isExpanded ? 'flex-start' : 'center',
-          gap: 10,
           flexShrink: 0,
           borderBottom: `1px solid ${S.divider}`,
+          overflow: 'hidden',
+          background: '#fff',
         }}>
-          <div style={{
-            width: 34, height: 34,
-            background: 'linear-gradient(135deg, #FF5E14, #FF9A5C)',
-            borderRadius: 10,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            flexShrink: 0,
-            boxShadow: '0 4px 12px rgba(255,94,20,0.35)',
-          }}>
-            <img src="/logo.png" alt="S"
-              style={{ height: 22, width: 22, objectFit: 'contain', filter: 'brightness(0) invert(1)' }}
-              onError={e => { e.target.style.display='none' }}
+          {logoUrl ? (
+            <img
+              src={logoUrl}
+              alt="Logo"
+              style={{
+                height: isExpanded ? 36 : 30,
+                width: isExpanded ? 'auto' : 30,
+                maxWidth: isExpanded ? 180 : 30,
+                objectFit: 'contain',
+                display: 'block',
+              }}
             />
-          </div>
-          {isExpanded && (
-            <div style={{ overflow: 'hidden' }}>
-              <div style={{ fontSize: 15, fontWeight: 800, color: '#fff', letterSpacing: '-0.02em', lineHeight: 1.1 }}>
-                SendTrack
+          ) : (
+            <>
+              <div style={{
+                width: 34, height: 34,
+                background: 'linear-gradient(135deg, #FF5E14, #FF9A5C)',
+                borderRadius: 10,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                flexShrink: 0,
+                boxShadow: '0 4px 12px rgba(255,94,20,0.35)',
+              }}>
+                <img src="/logo.png" alt="S"
+                  style={{ height: 22, width: 22, objectFit: 'contain', filter: 'brightness(0) invert(1)' }}
+                  onError={e => { e.target.style.display='none' }}
+                />
               </div>
-              <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', fontWeight: 500, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
-                Logistics Platform
-              </div>
-            </div>
+              {isExpanded && (
+                <div style={{ overflow: 'hidden', marginLeft: 10 }}>
+                  <div style={{ fontSize: 15, fontWeight: 800, color: '#fff', letterSpacing: '-0.02em', lineHeight: 1.1 }}>
+                    SendTrack
+                  </div>
+                  <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', fontWeight: 500, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+                    Logistics Platform
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </div>
 
@@ -540,7 +583,31 @@ export default function DashboardLayout() {
             >
               <Menu size={22} />
             </button>
-            <img src="/logo.png" alt="SendTrack" style={{ height: 26, width: 'auto', objectFit: 'contain' }} />
+
+            {/* Back / forward — shown in installed PWA where browser chrome is absent */}
+            {isStandalone && (
+              <div style={{ display: 'flex', gap: 2 }}>
+                <button
+                  onClick={() => navigate(-1)}
+                  aria-label="Go back"
+                  style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 8, padding: 6, cursor: 'pointer', color: 'var(--text-primary)', display: 'flex' }}
+                >
+                  <ArrowLeft size={20} />
+                </button>
+                <button
+                  onClick={() => navigate(1)}
+                  aria-label="Go forward"
+                  style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 8, padding: 6, cursor: 'pointer', color: 'var(--text-primary)', display: 'flex' }}
+                >
+                  <ArrowRight size={20} />
+                </button>
+              </div>
+            )}
+
+            {logoUrl
+              ? <img src={logoUrl} alt="Logo" style={{ height: 26, width: 'auto', maxWidth: 120, objectFit: 'contain' }} />
+              : <img src="/logo.png" alt="SendTrack" style={{ height: 26, width: 'auto', objectFit: 'contain' }} />
+            }
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 13, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user?.name}</div>
               <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>{ROLE_LABELS[user?.role] ?? user?.role}</div>
