@@ -82,12 +82,13 @@ export function Navbar({ logoUrl, siteName }) {
           <SiteLogo logoUrl={logoUrl} siteName={siteName} height={36} />
         </Link>
         <nav style={{ display: 'flex', gap: 32, marginLeft: 48, alignItems: 'center' }} className="lp-desktop-nav">
-          {['Home','About','Services','How It Works','Track','FAQ','Contact'].map(l => (
-            <a key={l} href={`/#${l.toLowerCase().replace(/\s+/g,'-')}`}
-              style={{ fontSize: 14, fontWeight: 500, color: '#6B6B6B', textDecoration: 'none', transition: 'color 0.15s' }}
-              onMouseEnter={e => e.target.style.color='#FF5E14'}
-              onMouseLeave={e => e.target.style.color='#6B6B6B'}>{l}</a>
-          ))}
+          {['Home','About','Services','How It Works','Track','Blog','FAQ','Contact'].map(l => {
+            const style = { fontSize: 14, fontWeight: 500, color: '#6B6B6B', textDecoration: 'none', transition: 'color 0.15s' }
+            const hover = { onMouseEnter: e => e.target.style.color='#FF5E14', onMouseLeave: e => e.target.style.color='#6B6B6B' }
+            return l === 'Blog'
+              ? <Link key={l} to="/blog" style={style} {...hover}>{l}</Link>
+              : <a key={l} href={`/#${l.toLowerCase().replace(/\s+/g,'-')}`} style={style} {...hover}>{l}</a>
+          })}
         </nav>
         <div style={{ marginLeft: 'auto', display: 'flex', gap: 10, alignItems: 'center' }}>
           <div className="lp-nav-auth" style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
@@ -104,10 +105,12 @@ export function Navbar({ logoUrl, siteName }) {
       </div>
       {open && (
         <div style={{ background: '#fff', borderTop: '1px solid #E5E5E5', padding: '12px 24px 20px' }}>
-          {['Home','About','Services','How It Works','Track','FAQ','Contact'].map(l => (
-            <a key={l} href={`/#${l.toLowerCase().replace(/\s+/g,'-')}`} onClick={() => setOpen(false)}
-              style={{ display: 'block', padding: '12px 0', fontSize: 15, fontWeight: 500, color: '#0D0D0D', textDecoration: 'none', borderBottom: '1px solid #F7F7F7' }}>{l}</a>
-          ))}
+          {['Home','About','Services','How It Works','Track','Blog','FAQ','Contact'].map(l => {
+            const style = { display: 'block', padding: '12px 0', fontSize: 15, fontWeight: 500, color: '#0D0D0D', textDecoration: 'none', borderBottom: '1px solid #F7F7F7' }
+            return l === 'Blog'
+              ? <Link key={l} to="/blog" onClick={() => setOpen(false)} style={style}>{l}</Link>
+              : <a key={l} href={`/#${l.toLowerCase().replace(/\s+/g,'-')}`} onClick={() => setOpen(false)} style={style}>{l}</a>
+          })}
           <Link to="/book" onClick={() => setOpen(false)}
             style={{ display: 'block', background: '#FF5E14', color: '#fff', padding: '12px', borderRadius: 8, fontSize: 15, fontWeight: 700, textDecoration: 'none', textAlign: 'center', marginTop: 14 }}>
             Book a Parcel
