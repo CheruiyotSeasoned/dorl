@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import axios from 'axios'
-import SiteLogo from '../components/SiteLogo'
+import SiteLogo, { buildLogoUrl } from '../components/SiteLogo'
 import WhatsAppWidget from '../components/WhatsAppWidget'
 import QuoteCalculator from '../components/QuoteCalculator'
 import {
@@ -593,11 +593,29 @@ function CtaBanner() {
 // ── News ──────────────────────────────────────────────────────────────────────
 function News({ c = [] }) {
   const gridRef = useReveal(0.05)
-  const posts = c.length ? c : [
+  const { data: live = [] } = useQuery({
+    queryKey: ['posts'],
+    queryFn: () => axios.get(`${API}/posts`, { params: { limit: 3 } }).then(r => r.data.data),
+    staleTime: 5 * 60 * 1000,
+  })
+
+  const fallback = c.length ? c : [
     { cat: 'Logistics',   title: 'SendTrack expands rider network across Nairobi CBD',     date: 'Apr 2025', excerpt: 'We are growing our fleet to serve more vendors in the Nairobi central business district with faster dispatch times.' },
     { cat: 'Technology',  title: 'Introducing real-time GPS proof of delivery',            date: 'Mar 2025', excerpt: 'Our new GPS verification feature ensures every delivery is confirmed within 200 metres of the dropoff point.' },
     { cat: 'Partnership', title: 'SendTrack partners with 28 logistics operators',         date: 'Feb 2025', excerpt: 'A growing network of delivery partners ensures we cover more ground and deliver faster across Nairobi.' },
   ]
+
+  const posts = live.length
+    ? live.map(p => ({
+        cat: p.category || 'News',
+        title: p.title,
+        date: p.published_at ? new Date(p.published_at).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' }) : '',
+        excerpt: p.excerpt,
+        slug: p.slug,
+        cover: p.cover_image_url,
+      }))
+    : fallback
+
   return (
     <section id="news" className="lp-pad" style={{ background: '#fff' }}>
       <div style={{ maxWidth: 1200, margin: '0 auto' }}>
@@ -606,23 +624,24 @@ function News({ c = [] }) {
             <span style={{ fontSize: 11, fontWeight: 700, color: '#FF5E14', textTransform: 'uppercase', letterSpacing: '1.2px' }}>News & Updates</span>
             <h2 style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", fontWeight: 700, fontSize: 'clamp(22px,4vw,32px)', marginTop: 8 }}>Latest from SendTrack</h2>
           </div>
-          <a href="#" style={{ fontSize: 14, fontWeight: 600, color: '#FF5E14', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 4 }}>
+          <Link to="/blog" style={{ fontSize: 14, fontWeight: 600, color: '#FF5E14', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 4 }}>
             All posts <ChevronRight size={16} />
-          </a>
+          </Link>
         </div>
         <div className="lp-news-grid" ref={gridRef}>
-          {posts.map(({ cat, title, date, excerpt }, idx) => {
+          {posts.map((post, idx) => {
+            const { cat, title, date, excerpt, slug, cover } = post
             const palette = CAT_COLORS[cat] ?? CAT_COLORS['Logistics']
             const ThumbIcon = palette.Icon
-            return (
-            <div key={title} className={`lp-reveal lp-d${idx + 1}`} style={{ background: '#fff', borderRadius: 16, overflow: 'hidden', border: '1px solid #E5E5E5', transition: 'box-shadow 0.2s, transform 0.2s, opacity 0.55s ease', cursor: 'pointer' }}
-              onMouseEnter={e => { e.currentTarget.style.boxShadow='0 8px 32px rgba(0,0,0,0.08)'; e.currentTarget.style.transform='translateY(-3px)' }}
-              onMouseLeave={e => { e.currentTarget.style.boxShadow='none'; e.currentTarget.style.transform='none' }}>
-              <div style={{ height: 180, background: `linear-gradient(135deg, ${palette.from} 0%, ${palette.to} 100%)`, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden' }}>
-                <div style={{ position: 'absolute', inset: 0, backgroundImage: `radial-gradient(circle at 70% 30%, ${palette.accent}26 0%, transparent 65%)`, pointerEvents: 'none' }} />
-                <div style={{ width: 72, height: 72, background: `${palette.accent}1a`, border: `1px solid ${palette.accent}33`, borderRadius: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', zIndex: 1 }}>
-                  <ThumbIcon size={32} color={palette.accent} />
-                </div>
+            const inner = (
+              <>
+              <div style={{ height: 180, background: cover ? '#f3f4f6' : `linear-gradient(135deg, ${palette.from} 0%, ${palette.to} 100%)`, backgroundImage: cover ? `url(${buildLogoUrl(cover)})` : undefined, backgroundSize: 'cover', backgroundPosition: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden' }}>
+                {!cover && <>
+                  <div style={{ position: 'absolute', inset: 0, backgroundImage: `radial-gradient(circle at 70% 30%, ${palette.accent}26 0%, transparent 65%)`, pointerEvents: 'none' }} />
+                  <div style={{ width: 72, height: 72, background: `${palette.accent}1a`, border: `1px solid ${palette.accent}33`, borderRadius: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', zIndex: 1 }}>
+                    <ThumbIcon size={32} color={palette.accent} />
+                  </div>
+                </>}
               </div>
               <div style={{ padding: '22px 22px 26px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
@@ -635,8 +654,16 @@ function News({ c = [] }) {
                   Read more <ChevronRight size={14} />
                 </div>
               </div>
-            </div>
-          )
+              </>
+            )
+            const cardStyle = { background: '#fff', borderRadius: 16, overflow: 'hidden', border: '1px solid #E5E5E5', transition: 'box-shadow 0.2s, transform 0.2s, opacity 0.55s ease', cursor: 'pointer', textDecoration: 'none', color: 'inherit', display: 'block' }
+            const hover = {
+              onMouseEnter: e => { e.currentTarget.style.boxShadow='0 8px 32px rgba(0,0,0,0.08)'; e.currentTarget.style.transform='translateY(-3px)' },
+              onMouseLeave: e => { e.currentTarget.style.boxShadow='none'; e.currentTarget.style.transform='none' },
+            }
+            return slug
+              ? <Link key={slug} to={`/blog/${slug}`} className={`lp-reveal lp-d${idx + 1}`} style={cardStyle} {...hover}>{inner}</Link>
+              : <div key={title} className={`lp-reveal lp-d${idx + 1}`} style={cardStyle} {...hover}>{inner}</div>
           })}
         </div>
       </div>

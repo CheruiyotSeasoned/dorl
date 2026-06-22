@@ -5,6 +5,8 @@ import { useAuthStore } from './store/authStore'
 
 import LandingPage from './pages/LandingPage'
 import BookParcelPage from './pages/BookParcelPage'
+import BlogPage from './pages/BlogPage'
+import BlogPostPage from './pages/BlogPostPage'
 import PrivacyPage from './pages/PrivacyPage'
 import TermsPage from './pages/TermsPage'
 import CareersPage from './pages/CareersPage'
@@ -32,6 +34,7 @@ import EmailInboxPage from './pages/EmailInboxPage'
 import TrackingPage from './pages/TrackingPage'
 import PublicTrackPage from './pages/PublicTrackPage'
 import LandingEditorPage from './pages/LandingEditorPage'
+import BlogAdminPage from './pages/BlogAdminPage'
 import ContactMessagesPage from './pages/ContactMessagesPage'
 import RiderOnboarding from './pages/onboarding/RiderOnboarding'
 import VendorOnboarding from './pages/onboarding/VendorOnboarding'
@@ -101,6 +104,8 @@ export default function App() {
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/book" element={<BookParcelPage />} />
+          <Route path="/blog" element={<BlogPage />} />
+          <Route path="/blog/:slug" element={<BlogPostPage />} />
           <Route path="/privacy" element={<PrivacyPage />} />
           <Route path="/terms" element={<TermsPage />} />
           <Route path="/careers" element={<CareersPage />} />
@@ -162,6 +167,7 @@ export default function App() {
             <Route path="settings"         element={<Guard roles={['admin']}><SettingsPage /></Guard>} />
             <Route path="audit-log"        element={<Guard roles={['admin']}><AuditLogPage /></Guard>} />
             <Route path="landing-editor"   element={<Guard roles={['admin']}><LandingEditorPage /></Guard>} />
+            <Route path="blog"             element={<Guard roles={['admin']}><BlogAdminPage /></Guard>} />
             <Route path="contact-messages" element={<Guard roles={['admin']}><ContactMessagesPage /></Guard>} />
             <Route path="system-health"    element={<Guard roles={['admin']}><SystemHealthPage /></Guard>} />
           </Route>

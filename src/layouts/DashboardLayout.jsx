@@ -6,7 +6,7 @@ import {
   BarChart3, Settings, Shield, Mail, MessageSquare, LogOut, Menu,
   ClipboardList, Globe, Building2, MonitorSmartphone, Warehouse, CalendarClock,
   MapPin, Wallet, QrCode, PackageSearch, Search,
-  ShieldCheck, Activity, ChevronLeft, ChevronRight, ArrowLeft, ArrowRight,
+  ShieldCheck, Activity, ChevronLeft, ChevronRight, ArrowLeft, ArrowRight, Newspaper,
 } from 'lucide-react'
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useQuery } from '@tanstack/react-query'
@@ -101,6 +101,7 @@ const NAV_GROUPS = [
       { to: '/users',            icon: Users,         label: 'Users',    roles: ['admin'] },
       { to: '/contact-messages', icon: MessageSquare, label: 'Messages', roles: ['admin'] },
       { to: '/email',            icon: Mail,          label: 'Email',    roles: ['admin'] },
+      { to: '/blog',             icon: Newspaper,     label: 'Blog',     roles: ['admin'] },
     ],
   },
   {
