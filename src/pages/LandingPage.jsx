@@ -67,6 +67,16 @@ export function Navbar({ logoUrl, siteName }) {
   const [open, setOpen] = useState(false)
   return (
     <header style={{ position: 'sticky', top: 0, zIndex: 100, background: '#fff', borderBottom: '1px solid #E5E5E5', boxShadow: '0 1px 0 rgba(0,0,0,0.04)' }}>
+      <style>{`
+        .lp-desktop-nav { display: flex; }
+        .lp-mobile-btn  { display: none; background: none; border: none; cursor: pointer; padding: 4px; }
+        .lp-nav-auth    { display: flex; }
+        @media(max-width:768px) {
+          .lp-desktop-nav { display: none !important; }
+          .lp-mobile-btn  { display: block !important; }
+          .lp-nav-auth    { display: none !important; }
+        }
+      `}</style>
       <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 24px', display: 'flex', alignItems: 'center', height: 72 }}>
         <Link to="/" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none', color: '#0D0D0D' }}>
           <SiteLogo logoUrl={logoUrl} siteName={siteName} height={36} />
@@ -1035,6 +1045,15 @@ export function Footer({ footer = {}, contact = {}, seo = {}, branding = {} }) {
 
   return (
     <footer style={{ background: '#0D0D0D', color: 'rgba(255,255,255,0.55)' }}>
+      <style>{`
+        .lp-footer-grid   { display: grid; grid-template-columns: 1.8fr 1fr 1fr 1fr; gap: 48px; padding-bottom: 48px; border-bottom: 1px solid rgba(255,255,255,0.07); }
+        .lp-footer-bottom { display: flex; align-items: center; justify-content: space-between; }
+        @media(max-width:1024px) { .lp-footer-grid { grid-template-columns: 1fr 1fr; gap: 32px; } }
+        @media(max-width:768px)  {
+          .lp-footer-grid   { grid-template-columns: 1fr; gap: 28px; }
+          .lp-footer-bottom { flex-direction: column; gap: 12px; text-align: center; }
+        }
+      `}</style>
       <div style={{ maxWidth: 1200, margin: '0 auto', padding: '64px 24px 0' }}>
         <div className="lp-footer-grid">
 
