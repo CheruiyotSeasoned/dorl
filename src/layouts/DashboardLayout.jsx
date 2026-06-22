@@ -101,7 +101,7 @@ const NAV_GROUPS = [
       { to: '/users',            icon: Users,         label: 'Users',    roles: ['admin'] },
       { to: '/contact-messages', icon: MessageSquare, label: 'Messages', roles: ['admin'] },
       { to: '/email',            icon: Mail,          label: 'Email',    roles: ['admin'] },
-      { to: '/blog',             icon: Newspaper,     label: 'Blog',     roles: ['admin'] },
+      { to: '/posts',            icon: Newspaper,     label: 'Blog',     roles: ['admin'] },
     ],
   },
   {

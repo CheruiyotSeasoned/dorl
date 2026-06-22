@@ -167,7 +167,7 @@ export default function App() {
             <Route path="settings"         element={<Guard roles={['admin']}><SettingsPage /></Guard>} />
             <Route path="audit-log"        element={<Guard roles={['admin']}><AuditLogPage /></Guard>} />
             <Route path="landing-editor"   element={<Guard roles={['admin']}><LandingEditorPage /></Guard>} />
-            <Route path="blog"             element={<Guard roles={['admin']}><BlogAdminPage /></Guard>} />
+            <Route path="posts"            element={<Guard roles={['admin']}><BlogAdminPage /></Guard>} />
             <Route path="contact-messages" element={<Guard roles={['admin']}><ContactMessagesPage /></Guard>} />
             <Route path="system-health"    element={<Guard roles={['admin']}><SystemHealthPage /></Guard>} />
           </Route>
