@@ -81,6 +81,7 @@ function Navbar({ logoUrl, siteName }) {
         </nav>
         <div style={{ marginLeft: 'auto', display: 'flex', gap: 10, alignItems: 'center' }}>
           <div className="lp-nav-auth" style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+            <Link to="/book" style={{ fontSize: 14, fontWeight: 700, color: '#FF5E14', textDecoration: 'none', padding: '8px 16px', border: '1.5px solid #FF5E14', borderRadius: 8 }}>Book Parcel</Link>
             <Link to="/login" style={{ fontSize: 14, fontWeight: 600, color: '#0D0D0D', textDecoration: 'none', padding: '8px 14px' }}>Sign in</Link>
             <Link to="/register" style={{ background: '#FF5E14', color: '#fff', padding: '9px 18px', borderRadius: 8, fontSize: 14, fontWeight: 600, textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 6 }}>
               Get Started <ArrowRight size={14} />
@@ -97,13 +98,17 @@ function Navbar({ logoUrl, siteName }) {
             <a key={l} href={`#${l.toLowerCase().replace(/\s+/g,'-')}`} onClick={() => setOpen(false)}
               style={{ display: 'block', padding: '12px 0', fontSize: 15, fontWeight: 500, color: '#0D0D0D', textDecoration: 'none', borderBottom: '1px solid #F7F7F7' }}>{l}</a>
           ))}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 14 }}>
+          <Link to="/book" onClick={() => setOpen(false)}
+            style={{ display: 'block', background: '#FF5E14', color: '#fff', padding: '12px', borderRadius: 8, fontSize: 15, fontWeight: 700, textDecoration: 'none', textAlign: 'center', marginTop: 14 }}>
+            Book a Parcel
+          </Link>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 10 }}>
             <Link to="/login" onClick={() => setOpen(false)}
               style={{ display: 'block', background: '#F7F7F7', color: '#0D0D0D', padding: '11px', borderRadius: 8, fontSize: 14, fontWeight: 600, textDecoration: 'none', textAlign: 'center' }}>
               Sign in
             </Link>
             <Link to="/register" onClick={() => setOpen(false)}
-              style={{ display: 'block', background: '#FF5E14', color: '#fff', padding: '11px', borderRadius: 8, fontSize: 14, fontWeight: 600, textDecoration: 'none', textAlign: 'center' }}>
+              style={{ display: 'block', background: '#0D0D0D', color: '#fff', padding: '11px', borderRadius: 8, fontSize: 14, fontWeight: 600, textDecoration: 'none', textAlign: 'center' }}>
               Get Started
             </Link>
           </div>
@@ -143,14 +148,14 @@ function Hero({ c = {} }) {
             {c.subtitle ?? 'SendTrack connects vendors and riders in real-time — fast dispatch, live GPS tracking, and proof of delivery you can trust.'}
           </p>
           <div className="lp-hero-btns" style={{ display: 'flex', gap: 14, flexWrap: 'wrap', marginBottom: 52 }}>
-            <Link to="/register" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: '#FF5E14', color: '#fff', padding: '14px 30px', borderRadius: 10, fontWeight: 700, fontSize: 15, textDecoration: 'none', transition: 'background 0.15s' }}
+            <Link to="/book" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: '#FF5E14', color: '#fff', padding: '14px 30px', borderRadius: 10, fontWeight: 700, fontSize: 15, textDecoration: 'none', transition: 'background 0.15s' }}
               onMouseEnter={e => e.currentTarget.style.background='#D94E0A'}
               onMouseLeave={e => e.currentTarget.style.background='#FF5E14'}>
-              {c.cta_primary ?? 'Get Started'} <ArrowRight size={16} />
+              Book a Parcel <ArrowRight size={16} />
             </Link>
-            <a href="#services" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.1)', color: '#fff', padding: '14px 30px', borderRadius: 10, fontWeight: 600, fontSize: 15, textDecoration: 'none', border: '1px solid rgba(255,255,255,0.18)', backdropFilter: 'blur(6px)' }}>
-              {c.cta_secondary ?? 'Our Solutions'}
-            </a>
+            <Link to="/register" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.1)', color: '#fff', padding: '14px 30px', borderRadius: 10, fontWeight: 600, fontSize: 15, textDecoration: 'none', border: '1px solid rgba(255,255,255,0.18)', backdropFilter: 'blur(6px)' }}>
+              {c.cta_primary ?? 'Get Started'}
+            </Link>
           </div>
           <div className="lp-stats-row" style={{ display: 'flex', gap: 36, flexWrap: 'wrap' }}>
             {stats.map(([v, l]) => (

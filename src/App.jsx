@@ -4,6 +4,7 @@ import { Toaster } from 'react-hot-toast'
 import { useAuthStore } from './store/authStore'
 
 import LandingPage from './pages/LandingPage'
+import BookParcelPage from './pages/BookParcelPage'
 import PrivacyPage from './pages/PrivacyPage'
 import TermsPage from './pages/TermsPage'
 import CareersPage from './pages/CareersPage'
@@ -99,6 +100,7 @@ export default function App() {
         <Toaster position="top-right" toastOptions={{ duration: 4000 }} />
         <Routes>
           <Route path="/" element={<LandingPage />} />
+          <Route path="/book" element={<BookParcelPage />} />
           <Route path="/privacy" element={<PrivacyPage />} />
           <Route path="/terms" element={<TermsPage />} />
           <Route path="/careers" element={<CareersPage />} />
